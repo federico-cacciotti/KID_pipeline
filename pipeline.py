@@ -298,12 +298,20 @@ def jointTargetSweeps(targets, exclude_channels=[[]], flat_at_0db=False):
 
 
 
-def complexS21Fit(I, Q, freqs, res_freq, input_path, output_path, DATAPOINTS=100, verbose=False):
+def complexS21Fit(I, Q, freqs, res_freq, output_path, DATAPOINTS=100, verbose=False):
     from lmfit import Parameters, minimize, fit_report
     from uncertainties import ufloat
     
     # DATAPOINTS: number of left and right datapoints with respect to the resonance frequency 
     # to which the complex fit is computed
+    
+    from pathlib import Path
+    output_path = Path(output_path)
+    
+    if not output_path.exists():
+        print("\n{:s} does not exists.".format(output_path.as_posix()))
+        return 0
+    
     if verbose:
         print("\nFit S21 complex function for {:s}...".format(output_path.as_posix()))
     
@@ -500,42 +508,37 @@ def complexS21Fit(I, Q, freqs, res_freq, input_path, output_path, DATAPOINTS=100
 
 
 
-def S21Plot(channel=None, target=None, vna_data=None):
-    if target != None and vna_data == None:
-        output_path = paths.target_S21 / target.filename / "{:03d}".format(channel)
-        # load data
-        I = np.load(output_path / "I.npy")
-        Q = np.load(output_path / "Q.npy")
-        #mag = np.load(output_path / "mag.npy")
-        #ph = np.load(output_path / "phi.npy")
-        freqs = np.load(output_path / "freqs.npy")
-    if target == None and vna_data != None:
-        output_path = paths.anritsuMS2034B / vna_data.filename
-        I = vna_data.ReS21
-        Q = vna_data.ImS21
-        freqs = vna_data.freqs
+def complexS21Plot(complex_fit_data_path):
+    from pathlib import Path
+    complex_fit_data_path = Path(complex_fit_data_path)
+    
+    I = np.load(complex_fit_data_path / "I.npy")
+    Q = np.load(complex_fit_data_path / "Q.npy")
+    #mag = np.load(output_path / "mag.npy")
+    #ph = np.load(output_path / "phi.npy")
+    freqs = np.load(complex_fit_data_path / "freqs.npy")
         
     A = np.sqrt(I**2 + Q**2)
     
     #IErr = I*0.01
     #QErr = Q*0.01
     
-    I_prime = np.load(output_path / "I_prime.npy")
-    Q_prime = np.load(output_path / "Q_prime.npy")
-    phase_prime = np.load(output_path / "phase_prime.npy")
+    I_prime = np.load(complex_fit_data_path / "I_prime.npy")
+    Q_prime = np.load(complex_fit_data_path / "Q_prime.npy")
+    phase_prime = np.load(complex_fit_data_path / "phase_prime.npy")
     phase_prime = np.unwrap(phase_prime)
     
-    I_second = np.load(output_path / "I_second.npy")
-    Q_second = np.load(output_path / "Q_second.npy")
+    I_second = np.load(complex_fit_data_path / "I_second.npy")
+    Q_second = np.load(complex_fit_data_path / "Q_second.npy")
     #mag_second = np.load(output_path / "mag_second.npy")
-    phase_second = np.load(output_path / "phase_second.npy")
+    phase_second = np.load(complex_fit_data_path / "phase_second.npy")
     if phase_second[0] <= 0.0:
         phase_second += 2.0*np.pi
     phase_second = np.unwrap(phase_second)
     
-    [Xc, Yc, rotAngle] = np.load(output_path / "transformation_parameters.npy")
-    [radius, Q_phfit, nu_r_ph_fit] = np.load(output_path / "phase_fit_parameters.npy")
-    [Rea, ReaErr, Ima, ImaErr, Qt, QtErr, Qc, QcErr, Qi, QiErr, nu_r, nu_rErr, phi0, phi0Err, tau] = np.load(output_path / "complex_parameters.npy")
+    [Xc, Yc, rotAngle] = np.load(complex_fit_data_path / "transformation_parameters.npy")
+    [radius, Q_phfit, nu_r_ph_fit] = np.load(complex_fit_data_path / "phase_fit_parameters.npy")
+    [Rea, ReaErr, Ima, ImaErr, Qt, QtErr, Qc, QcErr, Qi, QiErr, nu_r, nu_rErr, phi0, phi0Err, tau] = np.load(complex_fit_data_path / "complex_parameters.npy")
     
     def phaseFunction(nu, Q, nu_r):
         return -2*np.arctan2((2.0*Q*(nu/nu_r-1.0)), 1.0)
@@ -548,33 +551,10 @@ def S21Plot(channel=None, target=None, vna_data=None):
     fig.set_size_inches(10, 10)
     plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
     plt.subplots_adjust(hspace=0.0)
-    circlePlot = plt.subplot(221, aspect='equal')
-    phasePlot1 = plt.subplot(622)
-    phasePlot2 = plt.subplot(624)
-    amplitudePlot = plt.subplot(626)
-    ax_table = plt.subplot(212)
-    
-    Rea_u = ufloat(Rea, ReaErr)
-    Ima_u = ufloat(Ima, ImaErr)
-    Qt_u = ufloat(Qt, QtErr)
-    Qi_u = ufloat(Qi, QiErr)
-    Qc_u = ufloat(Qc, QcErr)
-    nu_r_u = ufloat(nu_r, nu_rErr)
-    phi0_u = ufloat(phi0, phi0Err)
-    
-    data=[[r'$x_c$ = {:.2e}'.format(Xc), r'$Q_{{tot}}$ = {:.0f}'.format(Q_phfit), r'Re[$a$] = {:.2u}'.format(Rea_u)],
-          [r'$y_c$ = {:.2e}'.format(Yc), r'$\nu_{{r}}$ = {:.2f} MHz'.format(nu_r_ph_fit), r'Im[$a$] = {:.2u}'.format(Ima_u)],
-          [r'$r_c$ = {:.2e}'.format(Xc), '', r'$Q_{{tot}}$ = {:.2u}'.format(Qt_u)],
-          [r'$\theta$ = {:.2f} rad'.format(rotAngle),'', r'$Q_{{i}}$ = {:.2u}'.format(Qi_u)],
-          ['', '', r'$Q_{{c}}$ = {:.2u}'.format(Qc_u)],
-          ['', '', r'$\nu_{{r}}$ = {:.2u}MHz'.format(nu_r_u)],
-          ['', '', r'$\phi_{{0}}$ = {:.2u} rad'.format(phi0_u)]]
-    column_labels=["Transformation", "Phase Fit", "Complex Fit"]
-    ax_table.axis('tight')
-    ax_table.axis('off')
-    table = ax_table.table(cellText=data, colLabels=column_labels, rowLoc="center", loc="center", edges='vertical', colLoc='center', cellLoc='left')
-    table.set_fontsize(10)
-    table.scale(1,1.5)
+    circlePlot = plt.subplot(121, aspect='equal')
+    phasePlot1 = plt.subplot(322)
+    phasePlot2 = plt.subplot(324)
+    amplitudePlot = plt.subplot(326)
     
     color_raw = (17/255, 157/255, 164/255, 1.0)
     color_raw_alpha = (17/255, 157/255, 164/255, 0.3)

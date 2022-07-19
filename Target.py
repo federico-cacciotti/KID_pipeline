@@ -96,7 +96,7 @@ class Target():
                     
                     try:
                         params, chi2 = pl.complexS21Fit(I=I, Q=Q, freqs=freqs, res_freq=e['target_freq'], 
-                                               input_path=in_path, output_path=out_path, DATAPOINTS=70)
+                                               output_path=out_path, DATAPOINTS=70)
                     
                         if params != None:
                             e['Re[a]'] = params['Re[a]']
@@ -118,7 +118,7 @@ class Target():
             
             try:
                 params = pl.complexS21Fit(I=I, Q=Q, freqs=freqs, res_freq=self.entry[channel]['target_freq'], 
-                              input_path=in_path, output_path=out_path, DATAPOINTS=70, verbose=True)
+                              output_path=out_path, DATAPOINTS=70, verbose=True)
                 
                 self.entry[channel]['Re[a]'] = params['Re[a]']
                 self.entry[channel]['Im[a]'] = params['Im[a]']
