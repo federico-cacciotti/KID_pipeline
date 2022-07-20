@@ -1,37 +1,32 @@
 import numpy as np
 import paths
 import pipeline as pl
+import sys
 
 class VNA():
     def __init__(self, filename, temperature=None, build_dataset=False):
+        print('Reding VNA sweep {:s}...'.format(filename))
         self.filename = filename
         self.temperature = temperature
         
-        self.bb_freqs = np.load(paths.vna / self.filename / 'bb_freqs.npy')
+        try:
+            self.bb_freqs = np.load(paths.vna / self.filename / 'bb_freqs.npy')
+        except:
+            print("Cannot find the target directory '{:s}'.".format(self.filename))
+            sys.exit()
         
         if not (paths.vna_S21 / self.filename).exists() or build_dataset:
             pl.buildS21Dataset(self)
-        
-        
-    def findPeaks(self, xlim=[0, 700], mag_filt='airp_lss', phase_filt='lowpass_cosine', phase_detrend=True, peak_width=(1.0, 150.0), peak_height=1.0, peak_prominence=(1.0, 30.0)):
-        
-        print('Peak finding...')
+            
+            
+    def removeBaseline(self, mag_filt='airp_lss', phase_filt='lowpass_cosine'):
+        print("Removing baselines...")
         print('Magnitude baseline correction algorithm: '+mag_filt)
-        if phase_detrend:
-            print('Phase detrend: True')
-        else:
-            print('Phase detrend: False')
         print('Phase baseline correction algorithm: '+phase_filt)
-        
-        from matplotlib import pyplot as plt
+    
         # how many channels?
         n_chan = self.bb_freqs.size
         
-        fig = plt.figure()
-        fig.set_size_inches(7.5, 8)
-        plt.subplots_adjust(bottom=0.15, right=0.98, top=0.95, left=0.1, wspace=0.35)
-        ax0 = plt.subplot(211)
-        ax1 = plt.subplot(212, sharex=ax0)
         freqs = []
         mag = []
         phase = []
@@ -84,10 +79,9 @@ class VNA():
         self.Q = Q
         
         # phase detrend
-        if phase_detrend:
-            from scipy.signal import detrend
-            detrend(phase, axis=-1, type='linear', overwrite_data=True)
-            phase -= phase[0]
+        from scipy.signal import detrend
+        detrend(phase, axis=-1, type='linear', overwrite_data=True)
+        phase -= phase[0]
         
         # mag filter
         if mag_filt == 'lowpass_cosine':
@@ -111,8 +105,42 @@ class VNA():
             smoothing_scale = 2500.0 # kHz
             filtered = pl.lowpass_cosine(phase, sweep_step, 1./smoothing_scale, 0.1 * (1.0/smoothing_scale))
             phase -= filtered
-            
-            
+    
+        return mag, phase
+    
+    def plotVNA(self, xlim=[0, 700], mag_filt='airp_lss', phase_filt='lowpass_cosine'):
+        print("Plot VNA sweep...")
+        mag, phase = self.removeBaseline(mag_filt, phase_filt)
+        
+        from matplotlib import pyplot as plt
+        fig = plt.figure()
+        fig.set_size_inches(7.5, 8)
+        plt.subplots_adjust(bottom=0.15, right=0.98, top=0.95, left=0.1, wspace=0.35)
+        ax0 = plt.subplot(211)
+        ax1 = plt.subplot(212, sharex=ax0)
+        
+        ax0.plot(self.freqs, mag, color='black', linewidth=1)
+        ax1.plot(self.freqs, phase, color='black', linewidth=1)
+        
+        ax0.grid(linestyle='-', alpha=0.5)
+        ax0.set_xlim([self.freqs[0], self.freqs[-1]])
+        ax0.set_ylabel('Mag [dB]')
+        ax0.set_xlabel('Frequency [MHz]')
+        
+        ax1.grid(linestyle='-', alpha=0.5)
+        ax1.set_xlim([self.freqs[0], self.freqs[-1]])
+        ax1.set_ylabel('Phase [rad]')
+        ax1.set_xlabel('Frequency [MHz]')
+        
+        plt.show()
+        
+        
+        
+    def findPeaks(self, xlim=[0, 700], mag_filt='airp_lss', phase_filt='lowpass_cosine', peak_width=(1.0, 150.0), peak_height=1.0, peak_prominence=(1.0, 30.0)):
+        print('Peak finding...')
+        
+        mag, phase = self.removeBaseline(mag_filt, phase_filt)
+        
         # peak finding
         from scipy.signal import find_peaks
         peaks, peaks_info = find_peaks(-mag, 
@@ -121,25 +149,32 @@ class VNA():
                                        prominence=peak_prominence)
         print("Found ", len(peaks), " resonances")
         
-        ax0.plot(freqs[peaks], mag[peaks], "x", label="Resonance")
-        ax0.vlines(x=freqs[peaks], ymin=mag[peaks], ymax=mag[peaks]+peaks_info["prominences"], color='red', ls='--', lw=1)
+        from matplotlib import pyplot as plt
+        fig = plt.figure()
+        fig.set_size_inches(7.5, 8)
+        plt.subplots_adjust(bottom=0.15, right=0.98, top=0.95, left=0.1, wspace=0.35)
+        ax0 = plt.subplot(211)
+        ax1 = plt.subplot(212, sharex=ax0)
         
-        xmin = (peaks_info["left_ips"]/(1+freqs.size)) * (freqs[-1]-freqs[0]) + freqs[0]
-        xmax = (peaks_info["right_ips"]/(1+freqs.size)) * (freqs[-1]-freqs[0]) + freqs[0]
+        ax0.plot(self.freqs[peaks], mag[peaks], "x", label="Resonance")
+        ax0.vlines(x=self.freqs[peaks], ymin=mag[peaks], ymax=mag[peaks]+peaks_info["prominences"], color='red', ls='--', lw=1)
+        
+        xmin = (peaks_info["left_ips"]/(1+self.freqs.size)) * (self.freqs[-1]-self.freqs[0]) + self.freqs[0]
+        xmax = (peaks_info["right_ips"]/(1+self.freqs.size)) * (self.freqs[-1]-self.freqs[0]) + self.freqs[0]
         ax0.hlines(y=-peaks_info["width_heights"], xmin=xmin, xmax=xmax, color='blue', ls='--', lw=1)
         
         ax0.legend(loc='best')
 
-        ax0.plot(freqs, mag, color='black', linewidth=1)
-        ax1.plot(freqs, phase, color='black', linewidth=1)
+        ax0.plot(self.freqs, mag, color='black', linewidth=1)
+        ax1.plot(self.freqs, phase, color='black', linewidth=1)
         
         ax0.grid(linestyle='-', alpha=0.5)
-        ax0.set_xlim([freqs[0], freqs[-1]])
+        ax0.set_xlim([self.freqs[0], self.freqs[-1]])
         ax0.set_ylabel('Mag [dB]')
         ax0.set_xlabel('Frequency [MHz]')
         
         ax1.grid(linestyle='-', alpha=0.5)
-        ax1.set_xlim([freqs[0], freqs[-1]])
+        ax1.set_xlim([self.freqs[0], self.freqs[-1]])
         ax1.set_ylabel('Phase [rad]')
         ax1.set_xlabel('Frequency [MHz]')
         
@@ -149,6 +184,7 @@ class VNA():
         
         
     def extractTarget(self, peaks, peaks_info):
+        print("Extracting target information...")
         from pathlib import Path
         
         from matplotlib import pyplot as plt
