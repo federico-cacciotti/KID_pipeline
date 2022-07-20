@@ -1,6 +1,5 @@
 import numpy as np
 from matplotlib.lines import Line2D
-from uncertainties import ufloat
 import sys
 
 # check if data directories exist
@@ -548,8 +547,8 @@ def complexS21Plot(complex_fit_data_path):
     # create a figure
     # text settings
     fig = plt.figure()
-    fig.set_size_inches(10, 10)
-    plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
+    fig.set_size_inches(15, 7)
+    plt.subplots_adjust(left=0.07, right=0.93, top=0.93, bottom=0.07)
     plt.subplots_adjust(hspace=0.0)
     circlePlot = plt.subplot(121, aspect='equal')
     phasePlot1 = plt.subplot(322)
@@ -569,15 +568,15 @@ def complexS21Plot(complex_fit_data_path):
     #circlePlot.errorbar(I, Q, xerr=IErr, yerr=QErr, marker='.', linestyle='--', linewidth=1.0, markersize=1.0, color='green', alpha=1.0, label='Raw data')
     #circlePlot.errorbar(I_prime, Q_prime, xerr=IErr, yerr=QErr, marker='.', linestyle='--', linewidth=1.0, markersize=1.0, color='black', alpha=1.0, label='Tau removed')
     
-    # fine tuning plot
+    # Complex plot plot
     Z = S_21(freqs, Rea, Ima, Qt, Qc, nu_r, phi0, tau)
-    circlePlot.plot(np.real(Z), np.imag(Z), linestyle='-', color='red', alpha=0.5, linewidth=3.0)#, label='Fine Tuning Fit')
+    circlePlot.plot(np.real(Z), np.imag(Z), linestyle='-', color='red', alpha=0.5, linewidth=3.0)#, label='S$_{21}$ Fit')
     
     # resonance after translation and rotation
     #circlePlot.plot(I_second, Q_second, marker='.', markersize=1.0, color='black', alpha=0.5, label='Centered data')
     circlePlot.plot(I_second, Q_second, color=color_centered,linestyle='-', marker='o', markersize=4, markerfacecolor=color_centered_alpha)#, label='Centered data')
     # circle fit plot
-    phiTrain = np.linspace(0.0, 2.0*np.pi, 100)
+    #phiTrain = np.linspace(0.0, 2.0*np.pi, 100)
     #circlePlot.plot(radius*np.cos(phiTrain), radius*np.sin(phiTrain), linestyle='-', color='blue', alpha=0.3, linewidth=3.0)#, label='Circle Fit')
     circlePlot.axvline(x=0.0, ymin=-10.0, ymax=10.0, linewidth='1.0', linestyle='--', color='black', alpha=0.3)
     circlePlot.axhline(y=0.0, xmin=-10.0, xmax=10.0, linewidth='1.0', linestyle='--', color='black', alpha=0.3)
@@ -589,19 +588,19 @@ def complexS21Plot(complex_fit_data_path):
     
     #phasePlot2.plot(freqs, ph_prime, marker='.', markersize=1.0, color=color_notau, alpha=0.5, label='Phase')
     phasePlot2.plot(freqs, phase_prime, color=color_notau,linestyle='-', marker='o', markersize=4, markerfacecolor=color_notau_alpha)#, label='Phase')
-    phasePlot2.plot(freqs, np.unwrap(np.angle(Z)), linestyle='-', color='red', alpha=0.5, linewidth=3.0)#, label='Fine Tuning Fit')
+    phasePlot2.plot(freqs, np.unwrap(np.angle(Z)), linestyle='-', color='red', alpha=0.5, linewidth=3.0)#, label='S$_{21}$ Fit')
     
     # amplitude plot
     #amplitudePlot.plot(freqs, A, marker='.', markersize=1.0, color=color_notau, alpha=0.5, label='Amplitude')
     amplitudePlot.plot(freqs, A/1e6, color=color_notau,linestyle='-', marker='o', markersize=4, markerfacecolor=color_notau_alpha)#, label='Amplitude')
-    amplitudePlot.plot(freqs, np.abs(Z)/1e6, linestyle='-', color='red', alpha=0.5, linewidth=3.0)#, label='Fine Tuning Fit')
+    amplitudePlot.plot(freqs, np.abs(Z)/1e6, linestyle='-', color='red', alpha=0.5, linewidth=3.0)#, label='S$_{21}$ Fit')
     
     handle = [Line2D([0], [0], color=color_raw,linestyle='-', marker='o', markersize=4, markerfacecolor=color_raw_alpha, label='Raw data'),
               Line2D([0], [0], color=color_notau,linestyle='-', marker='o', markersize=4, markerfacecolor=color_notau_alpha, label=r'$\tau$ removed'),
               Line2D([0], [0], color=color_centered,linestyle='-', marker='o', markersize=4, markerfacecolor=color_centered_alpha, label='Centered data'),
               #Line2D([0], [0], linestyle='-', color='blue', alpha=0.3, linewidth=3.0, label='Circle Fit'),
               Line2D([0], [0], linestyle='-', color='blue', alpha=0.3, linewidth=3.0, label='Phase fit'),
-              Line2D([0], [0], linestyle='-', color='red', alpha=0.5, linewidth=3.0, label='Fine Tuning Fit')]
+              Line2D([0], [0], linestyle='-', color='red', alpha=0.5, linewidth=3.0, label='S$_{21}$ Fit')]
     
     # graphics
     circlePlot.ticklabel_format(axis="both", style="sci", scilimits=(0,0))
