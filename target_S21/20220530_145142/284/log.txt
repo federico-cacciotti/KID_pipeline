@@ -1,0 +1,50 @@
+centerd circle parameters
+Xc = -4.192e+05
+Yc = -1.748e+05
+radius = 3.756e+05
+
+rotation angle
+angle = 1.898e-01
+
+[[Fit Statistics]]
+    # fitting method   = leastsq
+    # function evals   = 23
+    # data points      = 31
+    # variables        = 2
+    chi-square         = 565.798325
+    reduced chi-square = 19.5102871
+    Akaike info crit   = 94.0317653
+    Bayesian info crit = 96.8997397
+[[Variables]]
+    Q_tot:  30541.7670 +/- 358.133921 (1.17%) (init = 5000)
+    nu_r:   559.249708 +/- 1.8267e-05 (0.00%) (init = 559.2466)[[Fit Statistics]]
+    # fitting method   = leastsq
+    # function evals   = 542
+    # data points      = 31
+    # variables        = 6
+    chi-square         = 26.3063427
+    reduced chi-square = 1.05225371
+    Akaike info crit   = 6.91050901
+    Bayesian info crit = 15.5144322
+[[Variables]]
+    Rea:    567799.500 +/- 4453.76223 (0.78%) (init = -686239.2)
+    Ima:    630871.768 +/- 3212.94815 (0.51%) (init = -123476.1)
+    Q_tot:  27150.9341 +/- 191.104965 (0.70%) (init = 30541.77)
+    Q_c:    28606.4681 +/- 193.549573 (0.68%) (init = 28349.22)
+    nu_r:   559.251015 +/- 7.3997e-05 (0.00%) (init = 559.2497)
+    phi_0:  5.85891605 +/- 0.00688448 (0.12%) (init = 5.915343)
+    tau:    0.04 (fixed)
+[[Correlations]] (unreported correlations are < 0.100)
+    C(nu_r, phi_0)  = -0.934
+    C(Q_tot, Q_c)   = 0.915
+    C(Rea, Q_c)     = -0.720
+    C(Rea, nu_r)    = 0.653
+    C(Ima, phi_0)   = 0.632
+    C(Ima, Q_tot)   = -0.568
+    C(Rea, Q_tot)   = -0.487
+    C(Rea, phi_0)   = -0.478
+    C(Ima, nu_r)    = -0.464
+    C(Ima, Q_c)     = -0.359
+    C(Q_c, nu_r)    = -0.358
+    C(Q_tot, phi_0) = -0.304
+Q_i: 533613+/-100000
