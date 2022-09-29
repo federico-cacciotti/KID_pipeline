@@ -51,7 +51,8 @@ This is a function that plots the amplitude (in dB) and phase (in radians) of a 
 - `'a_lss'`: the function `pl.asymmetric_least_squares_smoothing()` will be called (this is not available for `phase_filt`);
 - `'airp_lss'`: the function `pl.adaptive_iteratively_reweighted_penalized_least_squares_smoothing()` will be called (this is not available for `phase_filt`).
 
-<image src="images/vna_plot.pdf"/>
+This is an example showing the flattened magnitude and phase data using an `airp_lss` algorithm for the `mag_filt` and a `lowpass_cosine` for the `phase_filt`. <br>
+<image src="images/vna_plot.png" width="60%">
 
 
 # `target` object
