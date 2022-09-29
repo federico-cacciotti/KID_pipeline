@@ -55,6 +55,10 @@ This is an example showing the original (without filtering out the baselines) an
 <image src="images/vna_plot.png" width="60%">
 <image src="images/vna_plot_filt.png" width="60%">
 
+#### `vna.findPeaks(xlim, mag_filt, phase_filt, peak_width, peak_height, peak_prominence)` <br>
+This function find the resonances dips in the VNA sweep and marks the found resonances with a cross. `xlim` is the frequency range of the plot, `mag_filt` and `phase_filt` are described in the previous function, `peak_width`, `peak_height` and `peak_prominence` are used to recognise local minima of the sweep data (see `scipy.signal.find_peaks()`). Currently only the magnitude data is used to find resonances. Following an example of application of this function where it found 353 resonances.
+<image src="images/vna_plot_findpeaks.png" width="60%">
+
 
 # `target` object
 
