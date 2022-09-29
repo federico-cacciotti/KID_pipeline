@@ -20,6 +20,10 @@ class VNA():
             
             
     def removeBaseline(self, mag_filt='airp_lss', phase_filt='lowpass_cosine'):
+        if mag_filt==None:
+            mag_filt = 'None'
+        if phase_filt==None:
+            phase_filt = 'None'
         print("Removing baselines...")
         print('Magnitude baseline correction algorithm: '+mag_filt)
         print('Phase baseline correction algorithm: '+phase_filt)
