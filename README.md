@@ -136,7 +136,10 @@ This function will save the fitted parameters in a `.npy` file inside the VNA sw
 
 
 #### `vna.plotS21(channel)` <br>
+This function is useful to visualize the result of the complex fit on the extracted resonances of a VNA sweep. The `channel` parameter must be an integer number between 0 and the number of extracted resonances (-1). This function calls the `pl.complexS21Plot()` routine.
 
+This is an example of a complex fit on an extracted resonance from a VNA sweep.
+<image src="images/complex_vna_fit.png" width="100%">
 
 
 # `target` object
