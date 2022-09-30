@@ -187,11 +187,14 @@ class VNA():
         return peaks, peaks_info
         
         
-    def extractTarget(self, peaks, peaks_info):
+    def extractTarget(self, peaks, peaks_info, extr_width=2.5):
         print("Extracting target information...")
         from pathlib import Path
-        
         from matplotlib import pyplot as plt
+        from matplotlib import cm
+        
+        cmap = cm.get_cmap('tab20b', lut=None)
+        
         fig = plt.figure()
         fig.set_size_inches(7.5, 8)
         plt.subplots_adjust(bottom=0.15, right=0.98, top=0.95, left=0.1, wspace=0.35)
@@ -213,7 +216,7 @@ class VNA():
             
             width = xmax - xmin
             
-            keep = np.logical_and(self.freqs>=xmin-2.5*width, self.freqs<=xmax+2.5*width)
+            keep = np.logical_and(self.freqs>=xmin-extr_width*width, self.freqs<=xmax+extr_width*width)
             
             # save I and Q data
             output_path = paths.vna_S21 / self.filename / 'extracted_target' / '{:03d}'.format(i)
@@ -231,8 +234,10 @@ class VNA():
             freqs.append(np.asarray(self.freqs[keep]))
             res_freq.append(self.freqs[peak])
             
-            ax0.plot(self.freqs[keep], self.mag[keep], color='black', linewidth=1)
-            ax1.plot(self.freqs[keep], self.phase[keep], color='black', linewidth=1)
+            color = cmap(np.random.rand())
+            
+            ax0.plot(self.freqs[keep], self.mag[keep], color=color, linewidth=1)
+            ax1.plot(self.freqs[keep], self.phase[keep], color=color, linewidth=1)
             
         
         output = {"I": I, "Q": Q, "mag": mag, "phase":phase, "freqs": freqs, "res_freq": res_freq}
