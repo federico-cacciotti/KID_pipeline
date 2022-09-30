@@ -151,7 +151,7 @@ target = pl.Target.Target(filename='20220530_145142', temperature=150, build_dat
 ```
 where the optional `temperature` parameter (default is `None`) defines the temperature of the target sweep expressed in milli kelvin and the optional `build_dataset` parameter (default is `False`) forces the conversion of the raw target sweep files into `.npy` files by creating a subfolder under the `target_S21` directory with the same name of the `filename` parameter.
 
-When a `target` object is defined a series of operations are performed in background. A dictionary `entry` will be created as an attribute of the `target` object. The dictionary have the following items:
+When a `target` object is defined a series of operations are performed in background. A dictionary `entry` will be created as an attribute of the `target` object. The dictionary has the following items:
 - `'target_freq'` a list with the target frequencies of the sweep;
 - `'channel'` a list indexes that label the resonances;
 - `'depth'` a list of the resonance depths in dB;
@@ -174,7 +174,19 @@ The next operation concerns the search for out of resonance tones with the funct
 ## Operations with the `target` object
 
 #### `target.filterOutOfResTones(std_mult)` <br>
-This function selects and labels all the out of resonance tones (if present).
+This function is called when a `target` object is defined. It selects and labels all the out of resonance tones (if present). The selection is done by comparing each tone depth with the target sweep average depth. If the depth of a tone is lower than `std_mult` times the standard deviation over the target sweep depths then it is labeled as an out of resonance tone and its corresponding value in the list `'is_out_of_res'` will be turned to `True`.
+
+
+#### `target.readS21Data()` <br>
+This function is called when a `target` object is defined. It will try to search for complex fit parameters of each resonance already present in the memory.
+
+
+#### `target.findDouble()` <br>
+This function is called when a `target` object is defined. It will try to search for double (or more) resonances in each tone of the target sweep. If it find a double resonance the corresponding value in the list `'number_of_peaks'` will be turned to the number of resonances found.
+
+#### `target.plotTarget(flat_at_0db)` <br>
+This is a function that plots the amplitude (in dB) of a target sweep. The optional boolean parameter `flat_at_0db` (`False` by default) if `True`, allows to plot all the tones with their highest point at the 0dB level. The output plot will be an interactive plot that will show the channel number of a tone when the mouse is over it, like in the example image below.
+<image src="images/target_plot.png" width="100%">
 
 
 # Other operations with the `pipeline` class
