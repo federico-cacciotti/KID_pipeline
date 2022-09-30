@@ -168,7 +168,7 @@ the next few items are used to store the output values of the complex fit routin
 - `'phi_0'`;
 - `'reduced_chi2'`.
 
-The next operation concerns the search for out of resonance tones with the function `target.filterOutOfResTones()`, the search in memory for the already computed S21 complex fit parameters with the function `target.readS21Data()` and the search for double resonances in the targets with `target.findDouble()`, all explained in the next section.
+The next operation concerns the search for out of resonance tones with the function `target.filterOutOfResTones()`, the search in memory for the already computed S21 complex fit parameters with the function `target.readS21Data()` (if present) and the search for double resonances in the target sweep with the `target.findDouble()` function. All these functions are explained in the next section.
 
 
 ## Operations with the `target` object
