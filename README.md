@@ -66,7 +66,78 @@ With this function it is possible to extract a target sweep from a VNA sweep in 
 
 
 #### `vna.fitS21(extracted_target, channel)` <br>
-This function performs a complex fit of the S21 scattering parameter on an extracted target resonance from a target sweep. The fitting routine is described under the `pl.complexS21Fit()` function section.
+This function performs a complex fit of the S21 scattering parameter on an extracted target resonance from a target sweep. The fitting routine is described under the `pl.complexS21Fit()` function section. The `channel` parameter can be an integer value between 0 and the number of extracted resonances -1 or `'all'` in order to perform the complex on all the resonances at once.
+
+This is an example of this function, the typical output will be:
+
+```shell
+Fit S21 complex function for vna_S21/20220531_04/extracted_target/001...
+
+	centerd circle parameters
+	Xc =  -4106.814783255634
+	Yc =  13468.54613369031
+	radius =  4041.616970887738
+
+	rotation angle
+	angle =  1.4642370255123929
+
+	phase fit
+	[[Fit Statistics]]
+    # fitting method   = leastsq
+    # function evals   = 21
+    # data points      = 40
+    # variables        = 2
+    chi-square         = 3300.41786
+    reduced chi-square = 86.8531016
+    Akaike info crit   = 180.516996
+    Bayesian info crit = 183.894755
+[[Variables]]
+    Q_tot:  14783.0227 +/- 415.342964 (2.81%) (init = 5000)
+    nu_r:   201.026147 +/- 5.3325e-05 (0.00%) (init = 201.0256)
+[[Correlations]] (unreported correlations are < 0.100)
+    C(Q_tot, nu_r) = -0.105
+
+	complex fit results
+	[[Fit Statistics]]
+    # fitting method   = leastsq
+    # function evals   = 221
+    # data points      = 40
+    # variables        = 6
+    chi-square         = 64.3328892
+    reduced chi-square = 1.89214380
+    Akaike info crit   = 31.0076617
+    Bayesian info crit = 41.1409384
+[[Variables]]
+    Rea:   -42.5742370 +/- 69.2660770 (162.69%) (init = -4509.955)
+    Ima:    18188.3458 +/- 143.319915 (0.79%) (init = 17237.46)
+    Q_tot:  13858.0282 +/- 491.054533 (3.54%) (init = 14783.02)
+    Q_c:    30879.1224 +/- 910.735366 (2.95%) (init = 32585.86)
+    nu_r:   201.025926 +/- 1.6956e-04 (0.00%) (init = 201.0261)
+    phi_0:  6.15323124 +/- 0.02365153 (0.38%) (init = 6.133844)
+    tau:    0.04 (fixed)
+[[Correlations]] (unreported correlations are < 0.100)
+    C(nu_r, phi_0) = -0.929
+    C(Ima, Q_c)    = -0.901
+    C(Q_tot, Q_c)  = 0.892
+    C(Ima, Q_tot)  = -0.782
+    C(Rea, phi_0)  = -0.510
+    C(Rea, nu_r)   = 0.454
+    C(Rea, Ima)    = 0.308
+    C(Rea, Q_c)    = -0.277
+    C(Q_tot, nu_r) = 0.163
+    C(Rea, Q_tot)  = -0.147
+    C(Ima, nu_r)   = -0.130
+    C(Q_c, nu_r)   = 0.108
+
+Q_i: 25141+/-1725
+```
+
+This function will save the fitted parameters in a `.npy` file inside the VNA sweep folder inside the `vna_S21` directory.
+
+
+#### `vna.plotS21(channel)` <br>
+
+
 
 # `target` object
 
