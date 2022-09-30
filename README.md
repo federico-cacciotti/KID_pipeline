@@ -149,10 +149,32 @@ You can open a `target` file by defining a `target` object as
 ```Python
 target = pl.Target.Target(filename='20220530_145142', temperature=150, build_dataset=True)
 ```
-where the optional `temperature` parameter (default is `None`) defines the temperature of the target sweep expressed in milli kelvin and the optional `build_dataset` parameter (default is `False`) forces the conversion the raw target sweep files into `.npy` files by creating a subfolder under the `target_S21` directory with the same name of the `filename` parameter.
+where the optional `temperature` parameter (default is `None`) defines the temperature of the target sweep expressed in milli kelvin and the optional `build_dataset` parameter (default is `False`) forces the conversion of the raw target sweep files into `.npy` files by creating a subfolder under the `target_S21` directory with the same name of the `filename` parameter.
+
+When a `target` object is defined a series of operations are performed in background. A dictionary `entry` will be created as an attribute of the `target` object. The dictionary have the following items:
+- `'target_freq'` a list with the target frequencies of the sweep;
+- `'channel'` a list indexes that label the resonances;
+- `'depth'` a list of the resonance depths in dB;
+- `'is_out_of_res'` a list of boolean values for each tone (`True` is the tone is out of resonance and `False` if it is a resonance, `False` by default);
+- `'number_of_peaks'` a list of integer number representing the number of peaks for each tone (useful to determine if a single tone sees more than one pixel);
+
+the next few items are used to store the output values of the complex fit routine for each resonance:
+- `'Re[a]'`;
+- `'Im[a]'`;
+- `'Q_tot'`;
+- `'Q_i'`;
+- `'Q_c'`;
+- `'nu_r'`;
+- `'phi_0'`;
+- `'reduced_chi2'`.
+
+The next operation concerns the search for out of resonance tones with the function `target.filterOutOfResTones()`, the search in memory for the already computed S21 complex fit parameters with the function `target.readS21Data()` and the search for double resonances in the targets with `target.findDouble()`, all explained in the next section.
+
 
 ## Operations with the `target` object
 
+#### `target.filterOutOfResTones(std_mult)` <br>
+This function selects and labels all the out of resonance tones (if present).
 
 
 # Other operations with the `pipeline` class
