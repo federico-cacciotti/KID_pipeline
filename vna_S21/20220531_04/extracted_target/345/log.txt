@@ -1,38 +1,39 @@
 centerd circle parameters
-Xc = 1.024e+04
+Xc = 1.035e+04
 Yc = 7.591e+03
-radius = 3.681e+03
+radius = 3.736e+03
 
 rotation angle
-angle = 2.869e+00
+angle = 2.859e+00
 
 [[Fit Statistics]]
     # fitting method   = leastsq
     # function evals   = 16
     # data points      = 40
     # variables        = 2
-    chi-square         = 12008.5401
-    reduced chi-square = 316.014212
-    Akaike info crit   = 232.179756
-    Bayesian info crit = 235.557515
+    chi-square         = 10003.1171
+    reduced chi-square = 263.239924
+    Akaike info crit   = 224.870903
+    Bayesian info crit = 228.248662
 [[Variables]]
-    Q_tot:  6499.45532 +/- 202.840783 (3.12%) (init = 5000)
-    nu_r:   658.966479 +/- 5.0365e-05 (0.00%) (init = 658.9531)[[Fit Statistics]]
+    Q_tot:  6333.42830 +/- 181.523087 (2.87%) (init = 5000)
+    nu_r:   658.965904 +/- 4.8360e-05 (0.00%) (init = 658.9531)
+[[Correlations]] (unreported correlations are < 0.100)
+    C(Q_tot, nu_r) = -0.178[[Fit Statistics]]
     # fitting method   = leastsq
     # function evals   = 14000
     # data points      = 40
     # variables        = 6
-    chi-square         = 146.354804
-    reduced chi-square = 4.30455307
-    Akaike info crit   = 63.8861755
-    Bayesian info crit = 74.0194522
+    chi-square         = 186.716279
+    reduced chi-square = 5.49165526
+    Akaike info crit   = 73.6284314
+    Bayesian info crit = 83.7617081
 ##  Warning: uncertainties could not be estimated:
-    nu_r:   at initial value
 [[Variables]]
-    Rea:   -2297.35911 (init = 13840.63)
-    Ima:   -17943.1628 (init = 8597.725)
-    Q_tot:  4657.30365 (init = 6499.455)
-    Q_c:    9692.58805 (init = 14384.88)
-    nu_r:   658.965429 (init = 658.9665)
-    phi_0:  6.04824789 (init = 5.999755)
+    Rea:   -1241.23030 (init = 13952.06)
+    Ima:   -18786.8512 (init = 8636.874)
+    Q_tot:  4214.08548 (init = 6333.428)
+    Q_c:    8569.59992 (init = 13909.41)
+    nu_r:   658.955692 (init = 658.9659)
+    phi_0:  6.25119693 (init = 6.01123)
     tau:    0.04 (fixed)

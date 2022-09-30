@@ -1,53 +1,22 @@
 centerd circle parameters
-Xc = -2.159e+04
+Xc = -2.163e+04
 Yc = 8.858e+03
-radius = 6.786e+03
+radius = 6.805e+03
 
 rotation angle
-angle = 9.717e-02
+angle = 6.266e+00
 
 [[Fit Statistics]]
     # fitting method   = leastsq
     # function evals   = 16
     # data points      = 40
     # variables        = 2
-    chi-square         = 2917.76571
-    reduced chi-square = 76.7833082
-    Akaike info crit   = 175.587759
-    Bayesian info crit = 178.965518
+    chi-square         = 3795.77921
+    reduced chi-square = 99.8889265
+    Akaike info crit   = 186.110622
+    Bayesian info crit = 189.488380
 [[Variables]]
-    Q_tot:  6170.03160 +/- 94.0970177 (1.53%) (init = 5000)
-    nu_r:   484.217964 +/- 2.2544e-06 (0.00%) (init = 484.223)
+    Q_tot:  6319.70147 +/- 111.631850 (1.77%) (init = 5000)
+    nu_r:   484.215217 +/- 3.3161e-05 (0.00%) (init = 484.223)
 [[Correlations]] (unreported correlations are < 0.100)
-    C(Q_tot, nu_r) = 0.170[[Fit Statistics]]
-    # fitting method   = leastsq
-    # function evals   = 4297
-    # data points      = 40
-    # variables        = 6
-    chi-square         = 11.0424584
-    reduced chi-square = 0.32477819
-    Akaike info crit   = -39.4852701
-    Bayesian info crit = -29.3519934
-[[Variables]]
-    Rea:    25727.0487 +/- 267.443876 (1.04%) (init = -28168.31)
-    Ima:    13831.4301 +/- 208.069512 (1.50%) (init = 9498.457)
-    Q_tot:  6758.42843 +/- 178.761133 (2.65%) (init = 6170.032)
-    Q_c:    15355.1220 +/- 541.126733 (3.52%) (init = 13513.55)
-    nu_r:   484.219362 +/- 6.1206e-04 (0.00%) (init = 484.218)
-    phi_0:  0.18993944 +/- 0.02312268 (12.17%) (init = 0.2280578)
-    tau:    0.04 (fixed)
-[[Correlations]] (unreported correlations are < 0.100)
-    C(Q_tot, Q_c)   = 0.990
-    C(nu_r, phi_0)  = -0.972
-    C(Rea, Q_tot)   = -0.916
-    C(Rea, Q_c)     = -0.902
-    C(Ima, Q_c)     = -0.690
-    C(Ima, Q_tot)   = -0.631
-    C(Ima, nu_r)    = -0.609
-    C(Ima, phi_0)   = 0.563
-    C(Rea, phi_0)   = -0.497
-    C(Rea, Ima)     = 0.342
-    C(Rea, nu_r)    = 0.342
-    C(Q_tot, phi_0) = 0.180
-    C(Q_c, phi_0)   = 0.127
-Q_i: 12072+/-661
+    C(Q_tot, nu_r) = 0.181

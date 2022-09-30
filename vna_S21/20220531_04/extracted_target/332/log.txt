@@ -4,36 +4,36 @@ Yc = 1.467e+04
 radius = 3.190e+03
 
 rotation angle
-angle = 1.899e+00
+angle = 1.875e+00
 
 [[Fit Statistics]]
     # fitting method   = leastsq
     # function evals   = 16
     # data points      = 40
     # variables        = 2
-    chi-square         = 9533.87664
-    reduced chi-square = 250.891490
-    Akaike info crit   = 222.949090
-    Bayesian info crit = 226.326849
+    chi-square         = 8977.00101
+    reduced chi-square = 236.236869
+    Akaike info crit   = 220.541668
+    Bayesian info crit = 223.919426
 [[Variables]]
-    Q_tot:  7182.59493 +/- 198.497840 (2.76%) (init = 5000)
-    nu_r:   642.899232 +/- 8.6120e-05 (0.00%) (init = 642.8925)
+    Q_tot:  7089.55492 +/- 191.561297 (2.70%) (init = 5000)
+    nu_r:   642.898885 +/- 2.8065e-05 (0.00%) (init = 642.8925)
 [[Correlations]] (unreported correlations are < 0.100)
-    C(Q_tot, nu_r) = -0.108[[Fit Statistics]]
+    C(Q_tot, nu_r) = -0.184[[Fit Statistics]]
     # fitting method   = leastsq
     # function evals   = 14000
     # data points      = 40
     # variables        = 6
-    chi-square         = 76.3827542
-    reduced chi-square = 2.24655159
-    Akaike info crit   = 37.8750994
-    Bayesian info crit = 48.0083762
+    chi-square         = 72.5401879
+    reduced chi-square = 2.13353494
+    Akaike info crit   = 35.8104508
+    Bayesian info crit = 45.9437275
 ##  Warning: uncertainties could not be estimated:
 [[Variables]]
-    Rea:   -18484.8343 (init = 2440.985)
-    Ima:    1239.38487 (init = 16975.35)
-    Q_tot:  5785.15241 (init = 7182.595)
-    Q_c:    13671.9131 (init = 19305.35)
-    nu_r:   642.916753 (init = 642.8992)
-    phi_0:  5.63495724 (init = 6.097831)
+    Rea:   -18202.2421 (init = 2131.27)
+    Ima:    1231.77985 (init = 16181.93)
+    Q_tot:  6058.57683 (init = 7089.555)
+    Q_c:    14541.0372 (init = 18134.98)
+    nu_r:   642.916597 (init = 642.8989)
+    phi_0:  5.61167355 (init = 6.109604)
     tau:    0.04 (fixed)

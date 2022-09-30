@@ -1,40 +1,40 @@
 centerd circle parameters
 Xc = 2.629e+03
-Yc = 6.387e+03
-radius = 9.041e+03
+Yc = 6.539e+03
+radius = 9.117e+03
 
 rotation angle
-angle = 2.055e+00
+angle = 2.085e+00
 
 [[Fit Statistics]]
     # fitting method   = leastsq
     # function evals   = 33
     # data points      = 40
     # variables        = 2
-    chi-square         = 118088.980
-    reduced chi-square = 3107.60473
-    Akaike info crit   = 323.612569
-    Bayesian info crit = 326.990328
+    chi-square         = 122593.116
+    reduced chi-square = 3226.13463
+    Akaike info crit   = 325.109868
+    Bayesian info crit = 328.487627
 [[Variables]]
-    Q_tot:  18007.9996 +/- 2995.93758 (16.64%) (init = 5000)
-    nu_r:   647.337966 +/- 0.00156349 (0.00%) (init = 647.284)
+    Q_tot:  16976.8095 +/- 2866.47134 (16.88%) (init = 5000)
+    nu_r:   647.338017 +/- 0.00162113 (0.00%) (init = 647.284)
 [[Correlations]] (unreported correlations are < 0.100)
-    C(Q_tot, nu_r) = 0.465[[Fit Statistics]]
+    C(Q_tot, nu_r) = 0.485[[Fit Statistics]]
     # fitting method   = leastsq
     # function evals   = 14000
     # data points      = 40
     # variables        = 6
-    chi-square         = 84103.8206
-    reduced chi-square = 2473.64178
-    Akaike info crit   = 318.037113
-    Bayesian info crit = 328.170390
+    chi-square         = 84351.3359
+    reduced chi-square = 2480.92164
+    Akaike info crit   = 318.154659
+    Bayesian info crit = 328.287936
 ##  Warning: uncertainties could not be estimated:
     nu_r:   at initial value
 [[Variables]]
-    Rea:   -35953.2613 (init = 3290.57)
-    Ima:    34974.2985 (init = 7643.088)
-    Q_tot:  5401.91316 (init = 18008)
-    Q_c:    5901.05187 (init = 8287.436)
-    nu_r:   647.332233 (init = 647.338)
-    phi_0:  0.08130192 (init = 6.205208)
+    Rea:   -34329.3670 (init = 3411.713)
+    Ima:    39025.7208 (init = 7923.126)
+    Q_tot:  5163.10052 (init = 16976.81)
+    Q_c:    5650.92621 (init = 8032.027)
+    nu_r:   647.338020 (init = 647.338)
+    phi_0:  6.26591146 (init = 6.175488)
     tau:    0.04 (fixed)

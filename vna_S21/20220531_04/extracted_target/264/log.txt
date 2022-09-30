@@ -1,39 +1,39 @@
 centerd circle parameters
-Xc = 8.555e+03
+Xc = 8.970e+03
 Yc = 1.107e+04
-radius = 6.240e+03
+radius = 6.447e+03
 
 rotation angle
-angle = 2.831e+00
+angle = 2.898e+00
 
 [[Fit Statistics]]
     # fitting method   = leastsq
     # function evals   = 19
     # data points      = 40
     # variables        = 2
-    chi-square         = 687.433950
-    reduced chi-square = 18.0903671
-    Akaike info crit   = 117.763452
-    Bayesian info crit = 121.141211
+    chi-square         = 683.395077
+    reduced chi-square = 17.9840810
+    Akaike info crit   = 117.527747
+    Bayesian info crit = 120.905506
 [[Variables]]
-    Q_tot:  2369.28250 +/- 66.9352891 (2.83%) (init = 5000)
-    nu_r:   549.126245 +/- 0.00129990 (0.00%) (init = 549.0733)
+    Q_tot:  2367.42834 +/- 67.8752193 (2.87%) (init = 5000)
+    nu_r:   549.126957 +/- 0.00134178 (0.00%) (init = 549.0733)
 [[Correlations]] (unreported correlations are < 0.100)
-    C(Q_tot, nu_r) = -0.963[[Fit Statistics]]
+    C(Q_tot, nu_r) = -0.964[[Fit Statistics]]
     # fitting method   = leastsq
     # function evals   = 14000
     # data points      = 40
     # variables        = 6
-    chi-square         = 294.261598
-    reduced chi-square = 8.65475289
-    Akaike info crit   = 91.8235883
-    Bayesian info crit = 101.956865
+    chi-square         = 287.161013
+    reduced chi-square = 8.44591214
+    Akaike info crit   = 90.8465450
+    Bayesian info crit = 100.979822
 ##  Warning: uncertainties could not be estimated:
 [[Variables]]
-    Rea:    11400.5502 (init = 13672.18)
-    Ima:    15496.2737 (init = 12712.88)
-    Q_tot:  2539.01131 (init = 2369.283)
-    Q_c:    4347.10980 (init = 3544.492)
-    nu_r:   549.084795 (init = 549.1262)
-    phi_0:  6.17096075 (init = 5.844429)
+    Rea:    11285.3403 (init = 13973.16)
+    Ima:    16458.4623 (init = 12313.48)
+    Q_tot:  2372.69460 (init = 2367.428)
+    Q_c:    3978.60740 (init = 3419.53)
+    nu_r:   549.079094 (init = 549.127)
+    phi_0:  6.24889660 (init = 5.804054)
     tau:    0.04 (fixed)

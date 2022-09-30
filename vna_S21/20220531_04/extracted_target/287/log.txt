@@ -1,38 +1,52 @@
 centerd circle parameters
 Xc = 3.162e+03
-Yc = 1.156e+04
-radius = 4.576e+03
+Yc = 1.162e+04
+radius = 4.609e+03
 
 rotation angle
-angle = 1.781e+00
+angle = 1.791e+00
 
 [[Fit Statistics]]
     # fitting method   = leastsq
-    # function evals   = 19
+    # function evals   = 13
     # data points      = 40
     # variables        = 2
-    chi-square         = 2286.68839
-    reduced chi-square = 60.1760103
-    Akaike info crit   = 165.839219
-    Bayesian info crit = 169.216978
+    chi-square         = 2320.59057
+    reduced chi-square = 61.0681730
+    Akaike info crit   = 166.427901
+    Bayesian info crit = 169.805660
 [[Variables]]
-    Q_tot:  5137.98236 +/- 65.7933202 (1.28%) (init = 5000)
-    nu_r:   577.568675 +/- 3.8881e-05 (0.00%) (init = 577.5705)[[Fit Statistics]]
+    Q_tot:  5052.60352 +/- 65.5416192 (1.30%) (init = 5000)
+    nu_r:   577.568915 +/- 3.1169e-05 (0.00%) (init = 577.5705)
+[[Correlations]] (unreported correlations are < 0.100)
+    C(Q_tot, nu_r) = 0.117[[Fit Statistics]]
     # fitting method   = leastsq
-    # function evals   = 14000
+    # function evals   = 7802
     # data points      = 40
     # variables        = 6
-    chi-square         = 28.3742807
-    reduced chi-square = 0.83453767
-    Akaike info crit   = -1.73585314
-    Bayesian info crit = 8.39742358
-##  Warning: uncertainties could not be estimated:
-    nu_r:   at initial value
+    chi-square         = 28.3641457
+    reduced chi-square = 0.83423958
+    Akaike info crit   = -1.75014322
+    Bayesian info crit = 8.38313351
 [[Variables]]
-    Rea:    12637.4168 (init = 4072.659)
-    Ima:    9833.57222 (init = 15820.7)
-    Q_tot:  5483.83850 (init = 5137.982)
-    Q_c:    10176.7994 (init = 9171.043)
-    nu_r:   577.568071 (init = 577.5687)
-    phi_0:  0.04610620 (init = 0.04161043)
+    Rea:    12657.0058 +/- 517.399753 (4.09%) (init = 4128.863)
+    Ima:    9818.72001 +/- 411.041087 (4.19%) (init = 15949.53)
+    Q_tot:  5479.20028 +/- 403.613403 (7.37%) (init = 5052.604)
+    Q_c:    10166.4168 +/- 1053.35673 (10.36%) (init = 9030.783)
+    nu_r:   577.568230 +/- 0.00178083 (0.00%) (init = 577.5689)
+    phi_0:  0.04194280 +/- 0.04357955 (103.90%) (init = 0.03355708)
     tau:    0.04 (fixed)
+[[Correlations]] (unreported correlations are < 0.100)
+    C(Q_tot, Q_c)  = 0.999
+    C(nu_r, phi_0) = -0.988
+    C(Rea, Q_c)    = -0.955
+    C(Rea, Q_tot)  = -0.955
+    C(Ima, Q_c)    = -0.900
+    C(Ima, Q_tot)  = -0.892
+    C(Rea, Ima)    = 0.738
+    C(Ima, nu_r)   = -0.565
+    C(Ima, phi_0)  = 0.481
+    C(Rea, phi_0)  = -0.200
+    C(Q_c, nu_r)   = 0.198
+    C(Q_tot, nu_r) = 0.185
+Q_i: 11884+/-2383

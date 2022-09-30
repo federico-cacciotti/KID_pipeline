@@ -1,39 +1,37 @@
 centerd circle parameters
 Xc = 6.409e+03
-Yc = 1.470e+04
-radius = 5.080e+03
+Yc = 1.525e+04
+radius = 5.356e+03
 
 rotation angle
-angle = 1.504e+00
+angle = 1.640e+00
 
 [[Fit Statistics]]
     # fitting method   = leastsq
-    # function evals   = 13
+    # function evals   = 21
     # data points      = 40
     # variables        = 2
-    chi-square         = 8293.76345
-    reduced chi-square = 218.256933
-    Akaike info crit   = 217.375187
-    Bayesian info crit = 220.752946
+    chi-square         = 5635.93651
+    reduced chi-square = 148.314119
+    Akaike info crit   = 201.921566
+    Bayesian info crit = 205.299325
 [[Variables]]
-    Q_tot:  5182.12212 +/- 129.691231 (2.50%) (init = 5000)
-    nu_r:   562.065131 +/- 4.0969e-05 (0.00%) (init = 562.0737)
-[[Correlations]] (unreported correlations are < 0.100)
-    C(Q_tot, nu_r) = -0.136[[Fit Statistics]]
+    Q_tot:  4569.77832 +/- 91.6221516 (2.00%) (init = 5000)
+    nu_r:   562.069276 +/- 3.8163e-05 (0.00%) (init = 562.0737)[[Fit Statistics]]
     # fitting method   = leastsq
     # function evals   = 14000
     # data points      = 40
     # variables        = 6
-    chi-square         = 254.227957
-    reduced chi-square = 7.47729286
-    Akaike info crit   = 85.9740752
-    Bayesian info crit = 96.1073519
+    chi-square         = 463.143027
+    reduced chi-square = 13.6218537
+    Akaike info crit   = 109.966259
+    Bayesian info crit = 120.099535
 ##  Warning: uncertainties could not be estimated:
 [[Variables]]
-    Rea:   -4642.98231 (init = 6088.855)
-    Ima:   -25530.3984 (init = 19508.68)
-    Q_tot:  3440.52497 (init = 5182.122)
-    Q_c:    5864.13723 (init = 10423.91)
-    nu_r:   562.048067 (init = 562.0651)
-    phi_0:  0.45056852 (init = 0.3688966)
+    Rea:   -12875.2451 (init = 6749.343)
+    Ima:   -36058.1272 (init = 20192.16)
+    Q_tot:  1768.94578 (init = 4569.778)
+    Q_c:    2568.52033 (init = 9082.08)
+    nu_r:   562.075583 (init = 562.0693)
+    phi_0:  1.5455e-04 (init = 0.2537903)
     tau:    0.04 (fixed)

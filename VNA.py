@@ -285,7 +285,7 @@ class VNA():
                 out_path.mkdir(parents=True)
             
             try:
-                params = pl.complexS21Fit(I=I[i], Q=Q[i], freqs=freqs[i], res_freq=res_freq[i], 
+                params, chi2 = pl.complexS21Fit(I=I[channel], Q=Q[channel], freqs=freqs[channel], res_freq=res_freq[channel], 
                               output_path=out_path, DATAPOINTS=20, verbose=True)
             except:
                 print("Not able to perform a complex fit.")

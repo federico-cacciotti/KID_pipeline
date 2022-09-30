@@ -1,39 +1,39 @@
 centerd circle parameters
-Xc = -6.225e+03
+Xc = -6.258e+03
 Yc = -5.901e+03
-radius = 1.147e+04
+radius = 1.148e+04
 
 rotation angle
-angle = 5.913e+00
+angle = 5.903e+00
 
 [[Fit Statistics]]
     # fitting method   = leastsq
-    # function evals   = 187
+    # function evals   = 191
     # data points      = 40
     # variables        = 2
-    chi-square         = 9778.89084
-    reduced chi-square = 257.339233
-    Akaike info crit   = 223.964076
-    Bayesian info crit = 227.341835
+    chi-square         = 9519.90531
+    reduced chi-square = 250.523824
+    Akaike info crit   = 222.890429
+    Bayesian info crit = 226.268188
 [[Variables]]
-    Q_tot:  21.7924476 +/- 135.701098 (622.70%) (init = 5000)
-    nu_r:   569.907654 +/- 35.3331098 (6.20%) (init = 575.6643)
+    Q_tot:  22.0441076 +/- 197.730951 (896.98%) (init = 5000)
+    nu_r:   569.907654 +/- 51.2411300 (8.99%) (init = 575.6643)
 [[Correlations]] (unreported correlations are < 0.100)
     C(Q_tot, nu_r) = 1.000[[Fit Statistics]]
     # fitting method   = leastsq
     # function evals   = 14000
     # data points      = 40
     # variables        = 6
-    chi-square         = 16040.4691
-    reduced chi-square = 471.778503
-    Akaike info crit   = 251.759627
-    Bayesian info crit = 261.892904
+    chi-square         = 16042.1146
+    reduced chi-square = 471.826899
+    Akaike info crit   = 251.763730
+    Bayesian info crit = 261.897007
 ##  Warning: uncertainties could not be estimated:
 [[Variables]]
-    Rea:   -6266.62045 (init = -8611.833)
-    Ima:   -8087.33899 (init = -6827.909)
-    Q_tot:  7.16213135 (init = 21.79245)
-    Q_c:    12.2031552 (init = 10.44449)
-    nu_r:   566.925314 (init = 569.9077)
-    phi_0:  5.31948791 (init = 5.983263)
+    Rea:   -4621.50476 (init = -8899.612)
+    Ima:   -7444.14373 (init = -6956.809)
+    Q_tot:  6.83293144 (init = 22.04411)
+    Q_c:    12.7380679 (init = 10.84392)
+    nu_r:   565.835559 (init = 569.9077)
+    phi_0:  4.99817010 (init = 5.999856)
     tau:    0.04 (fixed)

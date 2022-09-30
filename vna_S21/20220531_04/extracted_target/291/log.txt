@@ -1,39 +1,39 @@
 centerd circle parameters
 Xc = 6.369e+03
-Yc = 1.202e+04
-radius = 6.475e+03
+Yc = 1.212e+04
+radius = 6.523e+03
 
 rotation angle
-angle = 1.604e+00
+angle = 1.527e+00
 
 [[Fit Statistics]]
     # fitting method   = leastsq
     # function evals   = 22
     # data points      = 40
     # variables        = 2
-    chi-square         = 89287.9119
-    reduced chi-square = 2349.68189
-    Akaike info crit   = 312.429678
-    Bayesian info crit = 315.807436
+    chi-square         = 83369.2180
+    reduced chi-square = 2193.92679
+    Akaike info crit   = 309.686199
+    Bayesian info crit = 313.063958
 [[Variables]]
-    Q_tot:  9102.43612 +/- 1185.54176 (13.02%) (init = 5000)
-    nu_r:   583.266681 +/- 0.00156247 (0.00%) (init = 583.2827)
+    Q_tot:  10108.2617 +/- 1210.85077 (11.98%) (init = 5000)
+    nu_r:   583.266982 +/- 0.00128948 (0.00%) (init = 583.2827)
 [[Correlations]] (unreported correlations are < 0.100)
-    C(Q_tot, nu_r) = 0.495[[Fit Statistics]]
+    C(Q_tot, nu_r) = 0.371[[Fit Statistics]]
     # fitting method   = leastsq
     # function evals   = 14000
     # data points      = 40
     # variables        = 6
-    chi-square         = 4942.27851
-    reduced chi-square = 145.361133
-    Akaike info crit   = 204.668091
-    Bayesian info crit = 214.801368
+    chi-square         = 5190.98041
+    reduced chi-square = 152.675895
+    Akaike info crit   = 206.631936
+    Bayesian info crit = 216.765213
 ##  Warning: uncertainties could not be estimated:
 [[Variables]]
-    Rea:    14232.8102 (init = 6494.417)
-    Ima:   -1742.74288 (init = 15750.31)
-    Q_tot:  25499.9800 (init = 9102.436)
-    Q_c:    13236.6512 (init = 11974.4)
-    nu_r:   583.243646 (init = 583.2667)
-    phi_0:  1.86726980 (init = 0.357608)
+    Rea:    14926.8441 (init = 6195.989)
+    Ima:   -1743.03062 (init = 16081.62)
+    Q_tot:  21293.8816 (init = 10108.26)
+    Q_c:    12103.5675 (init = 13352.15)
+    nu_r:   583.242085 (init = 583.267)
+    phi_0:  1.78367728 (init = 0.4114781)
     tau:    0.04 (fixed)

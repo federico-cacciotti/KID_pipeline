@@ -1,39 +1,39 @@
 centerd circle parameters
-Xc = -1.833e+04
-Yc = 1.193e+04
-radius = 2.035e+04
+Xc = -1.848e+04
+Yc = 1.195e+04
+radius = 2.044e+04
 
 rotation angle
-angle = 6.283e+00
+angle = 6.010e-02
 
 [[Fit Statistics]]
     # fitting method   = leastsq
-    # function evals   = 250
+    # function evals   = 223
     # data points      = 40
     # variables        = 2
-    chi-square         = 70768.3785
-    reduced chi-square = 1862.32575
-    Akaike info crit   = 303.131524
-    Bayesian info crit = 306.509283
+    chi-square         = 61251.7487
+    reduced chi-square = 1611.88812
+    Akaike info crit   = 297.354729
+    Bayesian info crit = 300.732488
 [[Variables]]
-    Q_tot:  13.5488289 +/- 378.619208 (2794.48%) (init = 5000)
-    nu_r:   332.763501 +/- 93.0694499 (27.97%) (init = 329.4688)
+    Q_tot:  15.4468781 +/- 384.475048 (2489.01%) (init = 5000)
+    nu_r:   332.763516 +/- 16.1332156 (4.85%) (init = 329.4688)
 [[Correlations]] (unreported correlations are < 0.100)
-    C(Q_tot, nu_r) = -1.000[[Fit Statistics]]
+    C(Q_tot, nu_r) = 1.000[[Fit Statistics]]
     # fitting method   = leastsq
     # function evals   = 14000
     # data points      = 40
     # variables        = 6
-    chi-square         = 44602.4096
-    reduced chi-square = 1311.83558
-    Akaike info crit   = 292.666548
-    Bayesian info crit = 302.799825
+    chi-square         = 44624.6195
+    reduced chi-square = 1312.48881
+    Akaike info crit   = 292.686462
+    Bayesian info crit = 302.819738
 ##  Warning: uncertainties could not be estimated:
 [[Variables]]
-    Rea:    2312.93740 (init = -22868.92)
-    Ima:    53190.7895 (init = 11928.69)
-    Q_tot:  7.52900433 (init = 13.54883)
-    Q_c:    10.0196558 (init = 8.585021)
-    nu_r:   329.529918 (init = 332.7635)
-    phi_0:  0.36538440 (init = 0.4807868)
+    Rea:    806.195679 (init = -23317.93)
+    Ima:    48488.6226 (init = 12240.07)
+    Q_tot:  8.16419060 (init = 15.44688)
+    Q_c:    10.9486892 (init = 9.952654)
+    nu_r:   329.983682 (init = 332.7635)
+    phi_0:  0.39691480 (init = 0.4232823)
     tau:    0.04 (fixed)

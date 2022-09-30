@@ -61,8 +61,12 @@ This function find the resonances dips in the VNA sweep and marks the found reso
 
 
 #### `vna.extractTarget(peaks, peaks_info, extr_width)` <br>
-With this function it is possible to extract a target sweep from a VNA sweep in order to fit the resonance circles and measure the electrical parameters of a detector. This function takes in input the `peaks` and `peaks_info` parameters returned by the `vna.findPeaks()` function and returns a dictionary with I, Q, magnitude, phase and frequency for all the resonances found. The optional `extr_width` parameter (default is 2.5) is the frequency range in unit of FWHM of each extracted resonance.
+With this function it is possible to extract a target sweep from a VNA sweep in order to fit the resonance circles and measure the electrical parameters of a detector. This function takes in input the `peaks` and `peaks_info` parameters returned by the `vna.findPeaks()` function and returns a dictionary with I, Q, magnitude, phase and frequency for all the resonances found. The optional `extr_width` parameter (default is 2.5) is the frequency range in unit of FWHM of each extracted resonance. The following plot shows the extracted target sweep from a VNA sweep.
 <image src="images/vna_plot_targetext.png" width="100%">
+
+
+#### `vna.fitS21(extracted_target, channel)` <br>
+This function performs a complex fit of the S21 scattering parameter on an extracted target resonance from a target sweep. The fitting routine is described under the `pl.complexS21Fit()` function section.
 
 # `target` object
 

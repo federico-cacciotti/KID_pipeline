@@ -1,39 +1,39 @@
 centerd circle parameters
 Xc = 1.874e+03
-Yc = 7.754e+03
-radius = 9.989e+03
+Yc = 7.849e+03
+radius = 1.004e+04
 
 rotation angle
-angle = 1.633e+00
+angle = 1.525e+00
 
 [[Fit Statistics]]
     # fitting method   = leastsq
-    # function evals   = 251
+    # function evals   = 243
     # data points      = 40
     # variables        = 2
-    chi-square         = 508.828055
-    reduced chi-square = 13.3902120
-    Akaike info crit   = 105.729228
-    Bayesian info crit = 109.106987
+    chi-square         = 593.073019
+    reduced chi-square = 15.6071847
+    Akaike info crit   = 111.857523
+    Bayesian info crit = 115.235282
 [[Variables]]
-    Q_tot:  43.5217422 +/- 88.7841931 (204.00%) (init = 5000)
-    nu_r:   630.416699 +/- 12.8455686 (2.04%) (init = 624.1749)
+    Q_tot:  38.7059887 +/- 107.437772 (277.57%) (init = 5000)
+    nu_r:   630.416699 +/- 17.4969444 (2.78%) (init = 624.1749)
 [[Correlations]] (unreported correlations are < 0.100)
     C(Q_tot, nu_r) = -1.000[[Fit Statistics]]
     # fitting method   = leastsq
     # function evals   = 14000
     # data points      = 40
     # variables        = 6
-    chi-square         = 963.631615
-    reduced chi-square = 28.3421063
-    Akaike info crit   = 139.273185
-    Bayesian info crit = 149.406462
+    chi-square         = 938.509390
+    reduced chi-square = 27.6032174
+    Akaike info crit   = 138.216536
+    Bayesian info crit = 148.349813
 ##  Warning: uncertainties could not be estimated:
 [[Variables]]
-    Rea:    538.732508 (init = 1926.751)
-    Ima:    9876.39456 (init = 8598.285)
-    Q_tot:  54.0013744 (init = 43.52174)
-    Q_c:    22.5949055 (init = 19.19489)
-    nu_r:   632.158914 (init = 630.4167)
-    phi_0:  0.54976076 (init = 0.1580323)
+    Rea:    2022.82855 (init = 1834.584)
+    Ima:    18507.1133 (init = 8714.848)
+    Q_tot:  19.1087206 (init = 38.70599)
+    Q_c:    20.5559135 (init = 17.17178)
+    nu_r:   630.227827 (init = 630.4167)
+    phi_0:  0.62149029 (init = 0.2529586)
     tau:    0.04 (fixed)

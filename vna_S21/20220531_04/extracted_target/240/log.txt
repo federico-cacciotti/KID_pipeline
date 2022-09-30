@@ -1,40 +1,40 @@
 centerd circle parameters
 Xc = -1.015e+03
-Yc = 1.425e+04
-radius = 6.469e+03
+Yc = 1.431e+04
+radius = 6.503e+03
 
 rotation angle
-angle = 1.275e+00
+angle = 1.266e+00
 
 [[Fit Statistics]]
     # fitting method   = leastsq
     # function evals   = 13
     # data points      = 40
     # variables        = 2
-    chi-square         = 7149.32144
-    reduced chi-square = 188.140038
-    Akaike info crit   = 211.435731
-    Bayesian info crit = 214.813490
+    chi-square         = 7358.90730
+    reduced chi-square = 193.655455
+    Akaike info crit   = 212.591491
+    Bayesian info crit = 215.969250
 [[Variables]]
-    Q_tot:  5346.82217 +/- 125.213006 (2.34%) (init = 5000)
-    nu_r:   511.765467 +/- 4.1502e-05 (0.00%) (init = 511.7677)
+    Q_tot:  5241.65009 +/- 124.764981 (2.38%) (init = 5000)
+    nu_r:   511.765247 +/- 7.6126e-06 (0.00%) (init = 511.7677)
 [[Correlations]] (unreported correlations are < 0.100)
-    C(Q_tot, nu_r) = -0.149[[Fit Statistics]]
+    C(Q_tot, nu_r) = -0.172[[Fit Statistics]]
     # fitting method   = leastsq
     # function evals   = 14000
     # data points      = 40
     # variables        = 6
-    chi-square         = 182.791099
-    reduced chi-square = 5.37620880
-    Akaike info crit   = 72.7785805
-    Bayesian info crit = 82.9118572
+    chi-square         = 183.441869
+    reduced chi-square = 5.39534910
+    Akaike info crit   = 72.9207350
+    Bayesian info crit = 83.0540117
 ##  Warning: uncertainties could not be estimated:
     nu_r:   at initial value
 [[Variables]]
-    Rea:    5879.03051 (init = -2694.934)
-    Ima:   -20172.1183 (init = 19752.4)
-    Q_tot:  5114.23266 (init = 5346.822)
-    Q_c:    8111.22088 (init = 8238.247)
-    nu_r:   511.767598 (init = 511.7655)
-    phi_0:  0.06579123 (init = 0.1604692)
+    Rea:    5965.00937 (init = -2805.6)
+    Ima:   -20185.7248 (init = 20006.31)
+    Q_tot:  5096.10206 (init = 5241.65)
+    Q_c:    8072.39032 (init = 8142.217)
+    nu_r:   511.767279 (init = 511.7652)
+    phi_0:  0.07379869 (init = 0.1653279)
     tau:    0.04 (fixed)
