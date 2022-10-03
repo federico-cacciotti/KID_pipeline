@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
-Name: KID-pipeline
-Version: 1.0.0
+Name: G31-KID-pipeline
+Version: 1.0.1
 Summary: A pipeline for KID data analysis
 Author-email: Federico Cacciotti <federico.cacciotti@roma1.infn.it>
 Project-URL: Homepage, https://github.com/federico-cacciotti/KID_pipeline

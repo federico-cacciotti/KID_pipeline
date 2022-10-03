@@ -1,6 +1,6 @@
 [project]
 name = "G31_KID_pipeline"
-version = "1.0.0"
+version = "1.0.1"
 authors = [
   {name="Federico Cacciotti", email="federico.cacciotti@roma1.infn.it" },
 ]
