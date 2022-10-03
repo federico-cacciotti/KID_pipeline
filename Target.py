@@ -117,7 +117,7 @@ class Target():
             out_path = paths.target_S21 / self.filename / "{:03d}".format(channel)
             
             try:
-                params = pl.complexS21Fit(I=I, Q=Q, freqs=freqs, res_freq=self.entry[channel]['target_freq'], 
+                params, chi2 = pl.complexS21Fit(I=I, Q=Q, freqs=freqs, res_freq=self.entry[channel]['target_freq'], 
                               output_path=out_path, DATAPOINTS=70, verbose=True)
                 
                 self.entry[channel]['Re[a]'] = params['Re[a]']
@@ -127,7 +127,7 @@ class Target():
                 self.entry[channel]['Q_i'] = params['Q_i']
                 self.entry[channel]['nu_r'] = params['nu_r']
                 self.entry[channel]['phi_0'] = params['phi_0']
-                self.entry[channel]['reduced_chi2'] = params['reduced_chi2']
+                self.entry[channel]['reduced_chi2'] = chi2
             
             except:
                 print("Not able to perform a complex fit.")
@@ -295,3 +295,9 @@ class Target():
         ax2.set_xlabel('Frequency [MHz]')
         
         plt.show()
+        
+        
+    def plotS21(self, channel):
+        target_path = paths.target_S21 / self.filename / '{:03d}'.format(channel)
+        
+        pl.complexS21Plot(target_path)

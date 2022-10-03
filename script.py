@@ -22,4 +22,7 @@ v270.plotS21(1)
 '''
 
 t = pl.Target.Target(filename='20220530_145142')
-t.plotTarget()
+
+t.fitS21(channel=1)
+
+t.plotS21(1)
