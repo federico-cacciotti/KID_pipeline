@@ -26,3 +26,4 @@ t = pl.Target.Target(filename='20220530_145142')
 t.fitS21(channel=1)
 
 t.plotS21(1)
+
