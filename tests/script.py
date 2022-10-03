@@ -1,4 +1,4 @@
-import pipeline as pl
+import KID_pipeline as pl
 
 '''
 v140 = pl.VNA.VNA(filename='20220531_01', temperature=140)

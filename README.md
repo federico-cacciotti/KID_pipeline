@@ -1,11 +1,17 @@
 # KID_pipeline package
 A pipeline for Kinetic Inductance Detectors data analysis and characterization that I developed during my master thesis and PhD.
 
+# How to install
+Using the pip package:
+```shell
+pip install KID_pipeline
+```
+
 # Overview
 A short overview of the package is given here. To import the package just include it in your Python code as follows:
 
 ```Python
-import pipeline as pl
+import KID_pipeline as pl
 ```
 Once the package is imported in your code, it automatically checks if all the data directories exist. If it doesn't find one or more data directories, it creates them in the same path of your Python script. At the end of this operation you should have the following directories in your script path:
 
