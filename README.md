@@ -4,16 +4,22 @@ A pipeline for Kinetic Inductance Detectors data analysis and characterization t
 # How to install
 Using the pip package:
 ```shell
-pip install KID-pipeline
+pip install G31_KID_pipeline
 ```
 
 # Overview
 A short overview of the package is given here. To import the package just include it in your Python code as follows:
 
 ```Python
-import KID_pipeline as pl
+import G31_KID_pipeline as pl
 ```
-Once the package is imported in your code, it automatically checks if all the data directories exist. If it doesn't find one or more data directories, it creates them in the same path of your Python script. At the end of this operation you should have the following directories in your script path:
+Once the package is imported in your code, you must specify the path to the working directory where all the data files are stored. If the data is in the same folder of your Python script than the easiest way is to use the `os.getcwd()` function:
+```python
+import os
+# specify the working directory where data files are stored
+pl.paths(working_directory=os.getcwd())
+```
+In this way it automatically checks if all the data directories exist. If it doesn't find one or more data directories, it creates them in the same path of your Python script. At the end of this operation you should have the following directories in your script path:
 
 ```sh
 anritsu_MS2034B
@@ -45,7 +51,7 @@ your_python_script.py
 You can open a `VNA` file by defining a `VAN` object as
 
 ```Python
-vna = pl.VNA.VNA(filename='20220531_04', temperature=270, build_dataset=True)
+vna = pl.VNA(filename='20220531_04', temperature=270, build_dataset=True)
 ```
 where the optional `temperature` parameter (default is `None`) defines the temperature of the VNA sweep expressed in milli kelvin and the optional `build_dataset` parameter (default is `False`) forces the conversion the raw VNA sweep files into `.npy` files by creating a subfolder under the `VNA_S21` directory with the same name of the `filename` parameter.
 
@@ -153,7 +159,7 @@ This is an example of a complex fit on an extracted resonance from a VNA sweep.
 You can open a `target` file by defining a `target` object as
 
 ```Python
-target = pl.Target.Target(filename='20220530_145142', temperature=150, build_dataset=True)
+target = pl.Target(filename='20220530_145142', temperature=150, build_dataset=True)
 ```
 where the optional `temperature` parameter (default is `None`) defines the temperature of the target sweep expressed in milli kelvin and the optional `build_dataset` parameter (default is `False`) forces the conversion of the raw target sweep files into `.npy` files by creating a subfolder under the `target_S21` directory with the same name of the `filename` parameter.
 
