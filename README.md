@@ -1,11 +1,26 @@
-# KID_pipeline package
+# G31_KID_pipeline package
 A pipeline for Kinetic Inductance Detectors data analysis and characterization that I developed during my master thesis and PhD.
 
 # How to install
-Using the pip package:
+The use of this package is recommended under Linux or Mac OS. This software is developed under Mac OS.
+
+### Using the pip package
+Make sure you are using a `>=3.7` Python version and the latest `pip` version available by executing, for Mac Os / Linux users, the following command
+```shell
+python3 -m pip install --upgrade pip
+```
+or, for Windows users,
+```shell
+py -m pip install --upgrade pip
+```
+Then proceed with the package installation by typing
 ```shell
 pip install G31_KID_pipeline
 ```
+and you are done.
+
+# Stable versions and changelog
+Current stable version is 1.0.1 (October 3rd, 2022)
 
 # Overview
 A short overview of the package is given here. To import the package just include it in your Python code as follows:
@@ -48,7 +63,7 @@ your_python_script.py
 
 # `VNA` object
 
-You can open a `VNA` file by defining a `VAN` object as
+You can open a `VNA` file by defining a `VNA` object as
 
 ```Python
 vna = pl.VNA(filename='20220531_04', temperature=270, build_dataset=True)
