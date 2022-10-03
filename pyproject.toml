@@ -2,7 +2,7 @@
 name = "eKID_pipeline"
 version = "1.0.0"
 authors = [
-  { name="Federico Cacciotti},
+  {name="Federico Cacciotti", email="federico.cacciotti@roma1.infn.it" },
 ]
 description = "A pipeline for KID data analysis"
 readme = "README.md"
@@ -14,3 +14,4 @@ classifiers = [
 ]
 
 [project.urls]
+"Homepage" = "https://github.com/federico-cacciotti/KID_pipeline"
