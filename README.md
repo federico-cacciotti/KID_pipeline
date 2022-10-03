@@ -20,7 +20,7 @@ pip install G31_KID_pipeline
 and you are done.
 
 # Stable versions and changelog
-Current stable version is 1.0.1 (October 3rd, 2022)
+Current stable version is 1.0.2 (October 3rd, 2022)
 
 # Overview
 A short overview of the package is given here. To import the package just include it in your Python code as follows:
