@@ -20,7 +20,8 @@ pip install G31_KID_pipeline
 and you are done.
 
 # Stable versions and changelog
-Current stable version is 1.0.2 (October 3rd, 2022)
+- 1.0.3 (October 4rd, 2022) - added `lsTarget()` and `lsVNA()` functions and function descriptions
+- 1.0.2 (October 3rd, 2022) - first release
 
 # Overview
 A short overview of the package is given here. To import the package just include it in your Python code as follows:
