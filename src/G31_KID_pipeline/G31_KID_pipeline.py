@@ -23,7 +23,6 @@ from pathlib import Path
 '''
             Data_paths class
 '''
-
 class Data_paths():
     
     def __init__(self):
@@ -110,7 +109,6 @@ paths = Data_paths()
 '''
             VNA class
 '''
-
 class VNA():
     def __init__(self, filename, temperature=None, build_dataset=False):
         print('Reding VNA sweep {:s}...'.format(filename))
@@ -410,7 +408,6 @@ class VNA():
 '''
             Target class
 '''
-
 class Target():
     def __init__(self, filename, temperature=None, build_dataset=False):
         print('Reding target sweep {:s}...'.format(filename))
@@ -715,7 +712,9 @@ class Target():
             Othe functions
 '''
 
-        
+'''
+            readMS2034B function
+'''   
 class readMS2034B():
     def __init__(self, filename):
         self.filename = filename
@@ -773,7 +772,9 @@ class readMS2034B():
         
         
         
-        
+'''
+            lowpass_cosine function
+'''
 def lowpass_cosine(y, tau, f_3db, width, padd_data=True):
     
     import numpy as nm
@@ -829,7 +830,9 @@ def lowpass_cosine(y, tau, f_3db, width, padd_data=True):
     # return the filtered data
     return filtered
 
-
+'''
+            asymmetric_least_squares_smoothing function
+'''
 def asymmetric_least_squares_smoothing(data, lam, p, N_iter):
     '''
     lam: adjusting parameter
@@ -847,7 +850,9 @@ def asymmetric_least_squares_smoothing(data, lam, p, N_iter):
         w = p*(data < z) + (1.0-p)*(data >= z)
     return z
 
-
+'''
+            adaptive_iteratively_reweighted_penalized_least_squares_smoothing function
+'''
 def adaptive_iteratively_reweighted_penalized_least_squares_smoothing(data, lam, N_iter):
     '''
     lam: adjusting parameter
@@ -870,8 +875,28 @@ def adaptive_iteratively_reweighted_penalized_least_squares_smoothing(data, lam,
     return z
         
         
-        
+'''
+            buildS21Dataset function
+'''      
 def buildS21Dataset(sweep, ROACH='MISTRAL'):
+    '''
+    This function converts the raw data sweep into different .npy files
+    each for a single channel
+
+    Parameters
+    ----------
+    sweep : Target object or VNA object
+        A Target object or VNA object to be converted.
+    ROACH : string, optional
+        If 'MISTRAL' the tone frequencies are computed as freqs = LO + bb,
+        if 'OLIMPO' the tone frequencies are computed as freqs = LO/2 + bb. 
+        The default is 'MISTRAL'.
+
+    Returns
+    -------
+    None.
+
+    '''
     from  tqdm import tqdm
     
     filename = sweep.filename
@@ -944,17 +969,65 @@ def buildS21Dataset(sweep, ROACH='MISTRAL'):
 
 
 
-
+'''
+            S_21 function
+'''
 def S_21(nu, Rea, Ima, Q_tot, Q_c, nu_r, phi_0, tau):
-        a = Rea + Ima*1j
-        return np.exp(1j*2.0*np.pi*tau*nu)*a*(1.0 - (Q_tot/Q_c)*np.exp(1j*phi_0) / (1+2*1j*Q_tot*(nu-nu_r)/nu_r) )
+    '''
+    This function returns the S21 scattering parameter.
+
+    Parameters
+    ----------
+    nu : number, usually is a numpy array or listo of number
+        Frequency in [Hz].
+    Rea : number
+        Real part of the amplitude parameter.
+    Ima : number
+        Imaginary part of the amplitude parameter.
+    Q_tot : number
+        Total quality factor.
+    Q_c : number
+        Coupling quality factor.
+    nu_r : number
+        Resonant frequency in [Hz].
+    phi_0 : number, between [0; 2pi]
+        Phase parameter decribing the rotation of the resonant circle.
+    tau : number
+        Time delay due to the transmission line length in [s].
+
+    Returns
+    -------
+    comlex number or comlex numpy array
+        The computed S21 scattering parameter.
+
+    '''
+    a = Rea + Ima*1j
+    return np.exp(1j*2.0*np.pi*tau*nu)*a*(1.0 - (Q_tot/Q_c)*np.exp(1j*phi_0) / (1+2*1j*Q_tot*(nu-nu_r)/nu_r) )
 
 
 
-
-
-
+'''
+            jointTargetSweeps function
+'''
 def jointTargetSweeps(targets, exclude_channels=[[]], flat_at_0db=False):
+    '''
+    This function generates a plot with jointed target sweeps
+    
+    Parameters
+    ----------
+    targets : list of target objecs
+        A list of target objects to be jointed.
+    exclude_channels : list of list with channel indexes, optional
+        Channel lists to be excluded in the plot. The default is [[]].
+    flat_at_0db : boolean, optional
+        If True, each resonance will be vertically shifted such that 
+        its maximum is 0dB. The default is False.
+
+    Returns
+    -------
+    None.
+
+    '''
     from matplotlib import pyplot as plt
     fig = plt.figure()
     fig.set_size_inches(6, 4)
@@ -984,9 +1057,9 @@ def jointTargetSweeps(targets, exclude_channels=[[]], flat_at_0db=False):
         
 
 
-
-
-
+'''
+                complexS21Fit function
+'''
 def complexS21Fit(I, Q, freqs, res_freq, output_path, DATAPOINTS=100, verbose=False):
     from lmfit import Parameters, minimize, fit_report
     from uncertainties import ufloat
@@ -1196,7 +1269,9 @@ def complexS21Fit(I, Q, freqs, res_freq, output_path, DATAPOINTS=100, verbose=Fa
     return {'Re[a]': Rea, 'Im[a]': Ima, 'Q_tot': Q_tot, 'Q_c': Q_c, 'Q_i': Q_i, 'nu_r': nu_r, 'phi_0': phi_0, 'tau': tau}, out.redchi
 
 
-
+'''
+            complexS21Plot function
+'''
 def complexS21Plot(complex_fit_data_path):
     from pathlib import Path
     complex_fit_data_path = Path(complex_fit_data_path)
@@ -1258,8 +1333,9 @@ def complexS21Plot(complex_fit_data_path):
     #circlePlot.errorbar(I, Q, xerr=IErr, yerr=QErr, marker='.', linestyle='--', linewidth=1.0, markersize=1.0, color='green', alpha=1.0, label='Raw data')
     #circlePlot.errorbar(I_prime, Q_prime, xerr=IErr, yerr=QErr, marker='.', linestyle='--', linewidth=1.0, markersize=1.0, color='black', alpha=1.0, label='Tau removed')
     
-    # Complex plot plot
-    Z = S_21(freqs, Rea, Ima, Qt, Qc, nu_r, phi0, tau)
+    # Complex plot 
+    Z_freqs = np.linspace(freqs[0], freqs[-1], num=1000)
+    Z = S_21(Z_freqs, Rea, Ima, Qt, Qc, nu_r, phi0, tau)
     circlePlot.plot(np.real(Z), np.imag(Z), linestyle='-', color='red', alpha=0.5, linewidth=3.0)#, label='S$_{21}$ Fit')
     
     # resonance after translation and rotation
@@ -1278,12 +1354,12 @@ def complexS21Plot(complex_fit_data_path):
     
     #phasePlot2.plot(freqs, ph_prime, marker='.', markersize=1.0, color=color_notau, alpha=0.5, label='Phase')
     phasePlot2.plot(freqs, phase_prime, color=color_notau,linestyle='-', marker='o', markersize=4, markerfacecolor=color_notau_alpha)#, label='Phase')
-    phasePlot2.plot(freqs, np.unwrap(np.angle(Z)), linestyle='-', color='red', alpha=0.5, linewidth=3.0)#, label='S$_{21}$ Fit')
+    phasePlot2.plot(Z_freqs, np.unwrap(np.angle(Z)), linestyle='-', color='red', alpha=0.5, linewidth=3.0)#, label='S$_{21}$ Fit')
     
     # amplitude plot
     #amplitudePlot.plot(freqs, A, marker='.', markersize=1.0, color=color_notau, alpha=0.5, label='Amplitude')
     amplitudePlot.plot(freqs, A/1e6, color=color_notau,linestyle='-', marker='o', markersize=4, markerfacecolor=color_notau_alpha)#, label='Amplitude')
-    amplitudePlot.plot(freqs, np.abs(Z)/1e6, linestyle='-', color='red', alpha=0.5, linewidth=3.0)#, label='S$_{21}$ Fit')
+    amplitudePlot.plot(Z_freqs, np.abs(Z)/1e6, linestyle='-', color='red', alpha=0.5, linewidth=3.0)#, label='S$_{21}$ Fit')
     
     handle = [Line2D([0], [0], color=color_raw,linestyle='-', marker='o', markersize=4, markerfacecolor=color_raw_alpha, label='Raw data'),
               Line2D([0], [0], color=color_notau,linestyle='-', marker='o', markersize=4, markerfacecolor=color_notau_alpha, label=r'$\tau$ removed'),
@@ -1342,3 +1418,66 @@ def complexS21Plot(complex_fit_data_path):
     # print the figures
     plt.show()
 
+
+'''
+            lsTarget function
+'''
+def lsTarget():
+    '''
+    This function lists all the target sweep directories
+
+    Returns
+    -------
+    target_list : list of strings
+        A list of strings with the name of target sweep directories.
+    target_S21_list : list of strings
+        A list of strings with the name of converted target sweep directories.
+
+    '''
+    import os
+    print('List of target sweeps:')
+    target_list = sorted([t for t in os.listdir(paths.target) if t[0] != '.'])
+    for t in target_list:
+        print(t)
+    print('')
+    print('List of target sweeps converted into different channels:')
+    target_S21_list = sorted([t for t in os.listdir(paths.target_S21) if t[0] != '.'])
+    for t in target_S21_list:
+        print(t)
+    print('')
+    return target_list, target_S21_list
+    
+
+'''
+            lsVNA function
+'''
+def lsVNA():
+    '''
+    This function lists all the VNA sweep directories
+    
+    Returns
+    -------
+    vna_list : list of strings
+        A list of strings with the name of VNA sweep directories.
+    vna_S21_list : list of strings
+        A list of strings with the name of converted VNA sweep directories.
+
+    '''
+    import os
+    print('List of VNA sweeps:')
+    vna_list = sorted([vna for vna in os.listdir(paths.vna) if vna[0] != '.'])
+    for vna in vna_list:
+        print(vna)
+    print('')
+    print('List of VNA sweeps converted into different channels:')
+    vna_S21_list = sorted([vna for vna in os.listdir(paths.vna_S21) if vna[0] != '.'])
+    for vna in vna_S21_list:
+        print(vna)
+    print('') 
+    return vna_list, vna_S21_list
+    
+    
+    
+
+    
+    
