@@ -1,9 +1,9 @@
 Metadata-Version: 2.1
 Name: G31-KID-pipeline
-Version: 1.0.2
+Version: 1.0.3
 Summary: A pipeline for KID data analysis
 Author-email: Federico Cacciotti <federico.cacciotti@roma1.infn.it>
-Project-URL: Homepage, https://github.com/federico-cacciotti/KID_pipeline
+Project-URL: Homepage, https://github.com/federico-cacciotti/G31_KID_pipeline
 Classifier: Programming Language :: Python :: 3
 Classifier: License :: OSI Approved :: MIT License
 Classifier: Operating System :: OS Independent

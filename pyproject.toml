@@ -1,6 +1,6 @@
 [project]
 name = "G31_KID_pipeline"
-version = "1.0.2"
+version = "1.0.3"
 authors = [
   {name="Federico Cacciotti", email="federico.cacciotti@roma1.infn.it" },
 ]
@@ -14,4 +14,4 @@ classifiers = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/federico-cacciotti/KID_pipeline"
+"Homepage" = "https://github.com/federico-cacciotti/G31_KID_pipeline"
