@@ -409,10 +409,15 @@ class VNA():
             Target class
 '''
 class Target():
-    def __init__(self, filename, temperature=None, build_dataset=False):
+    def __init__(self, filename, temperature=None, build_dataset=False, label=None, out_of_resonance_parameter=2.0):
         print('Reding target sweep {:s}...'.format(filename))
         self.filename = filename
         self.temperature = temperature
+        
+        if label != None:
+            self.label = label
+        else:
+            self.label = filename
         
         self.in_res_target_idx_aligned = []
         
@@ -448,7 +453,7 @@ class Target():
                                'phi_0': None,
                                'reduced_chi2': None})
         
-        self.out_of_res = self.filterOutOfResTones(std_mult=3.0)
+        self.out_of_res = self.filterOutOfResTones(std_mult=out_of_resonance_parameter)
         
         self.readS21Data()
         
@@ -457,7 +462,7 @@ class Target():
 
     # filter out of resonance tones refusing them, sigma_mult allows to refuse out of resonance tones
     def filterOutOfResTones(self, std_mult=3.0):
-        print("\nChecking if there are out of resonance tones...")
+        print("\nChecking for out of resonance tones...")
         
         depths = [self.entry[i]['depth'] for i in range(self.entries)]
         average_depth = np.average(depths)
@@ -481,7 +486,7 @@ class Target():
                     
         return out_of_res_number
 
-    def fitS21(self, channel):
+    def fitS21(self, channel, DATAPOINTS=70):
         print("")
         from tqdm import tqdm
         
@@ -501,7 +506,7 @@ class Target():
                     
                     try:
                         params, chi2 = complexS21Fit(I=I, Q=Q, freqs=freqs, res_freq=e['target_freq'], 
-                                               output_path=out_path, DATAPOINTS=70)
+                                               output_path=out_path, DATAPOINTS=DATAPOINTS)
                     
                         if params != None:
                             e['Re[a]'] = params['Re[a]']
@@ -523,7 +528,7 @@ class Target():
             
             try:
                 params, chi2 = complexS21Fit(I=I, Q=Q, freqs=freqs, res_freq=self.entry[channel]['target_freq'], 
-                              output_path=out_path, DATAPOINTS=70, verbose=True)
+                              output_path=out_path, DATAPOINTS=DATAPOINTS, verbose=True)
                 
                 self.entry[channel]['Re[a]'] = params['Re[a]']
                 self.entry[channel]['Im[a]'] = params['Im[a]']
@@ -668,7 +673,7 @@ class Target():
         I = np.load(paths.target_S21 / self.filename / "{:03d}".format(channel) / "I.npy")
         Q = np.load(paths.target_S21 / self.filename / "{:03d}".format(channel) / "Q.npy")
         
-        accumulation_length = 2**21
+        accumulation_length = 2**20 #for fs=244.14Hz #2**21 for fs=122.07Hz
         fft_len = 1024
         I /= (2**31-1)    # mistral client
         I /= (accumulation_length-1)/(0.5*fft_len)    # mistral client
@@ -716,28 +721,67 @@ class Target():
             readMS2034B function
 '''   
 class readMS2034B():
-    def __init__(self, filename):
+    def __init__(self, filename, label=None):
         self.filename = filename
+        
+        if label != None:
+            self.label = label
+        else:
+            self.label = filename
+        
         [self.freqs, self.ReS11, self.ImS11, self.ReS21, self.ImS21, 
          self.ReS12, self.ImS12, self.ReS22, self.ImS22] = np.loadtxt(fname=paths.anritsuMS2034B / filename, dtype=float, skiprows=23, unpack=True)
         self.freqs *= 1e3 # GHz to MHz
     
     
+    def fitS21(self):
+        I = self.ReS21
+        Q = self.ImS21
+        
+        amp = np.sqrt(I*I + Q*Q)
+        res_freq = self.freqs[np.argmin(amp)]
+        out_path = paths.anritsuMS2034B
+        
+        np.save(out_path/"I.npy", arr=I)
+        np.save(out_path/"Q.npy", arr=Q)
+        np.save(out_path/"freqs.npy", arr=self.freqs)
+        
+        try:
+            params, chi2 = complexS21Fit(I=I, Q=Q, freqs=self.freqs, res_freq=res_freq, 
+                                   output_path=out_path, verbose=True, DATAPOINTS=3500)
+        
+            if params != None:
+                self.Rea = params['Re[a]']
+                self.Ima = params['Im[a]']
+                self.Qtot = params['Q_tot']
+                self.Qc = params['Q_c']
+                self.Qi = params['Q_i']
+                self.nur = params['nu_r']
+                self.phi0 = params['phi_0']
+                self.chi2 = chi2
+        except:
+            pass
+        
+    
     def plotS21(self):
+        target_path = paths.anritsuMS2034B
+        complexS21Plot(target_path)
+    
+    def plotVNA(self):
         from matplotlib import pyplot as plt
         fig = plt.figure()
-        fig.set_size_inches(6, 12)
-        ax0 = plt.subplot(311)
-        ax1 = plt.subplot(312)
-        ax2 = plt.subplot(313)
+        fig.set_size_inches(12, 6)
+        ax0 = plt.subplot(221)
+        ax1 = plt.subplot(223)
+        ax2 = plt.subplot(222)
         
-        amp = np.sqrt(self.ReS21**2 + self.ImS21**2)
+        amp = 20*np.log10(np.sqrt(self.ReS21**2 + self.ImS21**2))
         ph = np.arctan2(self.ImS21, self.ReS21)
         ph = np.unwrap(ph)
         
         ax0.plot(self.freqs, amp, color='black', linewidth=1)
         ax1.plot(self.freqs, ph, color='black', linewidth=1)
-        ax2.plot(self.ReS21, self.ImS21, color='black', linewidth=1)
+        ax2.plot(self.ReS21*1e3, self.ImS21*1e3, color='black', linewidth=1)
         
         ax0.yaxis.set_ticks_position('both')
         ax0.xaxis.set_ticks_position('both')
@@ -764,13 +808,80 @@ class readMS2034B():
         ax2.yaxis.set_tick_params(direction='in', which='both')
         ax2.xaxis.set_tick_params(direction='in', which='both')
         ax2.grid(linestyle='-', alpha=0.5)
-        ax2.set_ylabel(r'Im[S_{{21}}]')
-        ax2.set_xlabel(r'Re[S_{{21}}]')
+        ax2.set_ylabel(r'Im[S$_{{21}}$] $\times 10^{{-3}}$')
+        ax2.set_xlabel(r'Re[S$_{{21}}$] $\times 10^{{-3}}$')
         
         plt.show()
-        
-        
-        
+
+
+'''
+        Function for overplotting target data
+'''
+def overplotTarget(targets=None, ms2034b_data_list=None, complex_fit_above=False, flat_at_0db=True, colormap='coolwarm'):
+    from matplotlib import pyplot as plt
+    from matplotlib.lines import Line2D
+    from matplotlib import cm
+    cmap = cm.get_cmap(colormap, lut=None)
+    
+    fig = plt.figure()
+    fig.set_size_inches(7, 7)
+    ax0 = plt.subplot(111)
+    
+    ax0.yaxis.set_ticks_position('both')
+    ax0.xaxis.set_ticks_position('both')
+    ax0.minorticks_on()
+    ax0.yaxis.set_tick_params(direction='in', which='both')
+    ax0.xaxis.set_tick_params(direction='in', which='both')
+    ax0.grid(linestyle='-', alpha=0.5)
+    ax0.set_ylabel('Mag [dB]')
+    ax0.set_xlabel('Frequency [MHz]')
+    
+    # plot roach target sweeps
+    handles = []
+    if targets != None:
+        for i,target in enumerate(targets):
+            
+            color = cmap(i/(len(targets)-1))
+            
+            for e in target.entry:
+                # read one sweep at a time
+                channel = e['channel']
+                x_data_chan = np.load(paths.target_S21 / target.filename / "{:03d}".format(channel) / "freqs.npy")
+                y_data_chan = np.load(paths.target_S21 / target.filename / "{:03d}".format(channel) / "mag.npy")
+            
+                if flat_at_0db:
+                    y_offset = y_data_chan[0]
+                    y_data_chan -= y_offset
+            
+                ax0.plot(x_data_chan, y_data_chan, color=color)
+                
+                if complex_fit_above and e['is_out_of_res']==False:
+                    nu = np.linspace(x_data_chan[0], x_data_chan[-1], num=2000)
+                    Z = S_21(nu, e['Re[a]'].n, e['Im[a]'].n, e['Q_tot'].n, e['Q_c'].n, e['nu_r'].n, e['phi_0'].n, tau=0.04)
+                    mag = 20*np.log10(np.abs(Z))
+                    if flat_at_0db:
+                        mag -= y_offset
+                    ax0.plot(nu, mag, linestyle='solid', color=color, alpha=0.6, linewidth=4)
+                
+            handles.append(Line2D([0], [0], label=target.label, color=color))
+            
+    # plot ms2034b VNA sweeps
+    if ms2034b_data_list != None:
+        for i,sweep in enumerate(ms2034b_data_list):
+            amp = 20*np.log10(np.sqrt(sweep.ReS21**2.0 + sweep.ImS21**2.0))
+            
+            if flat_at_0db:
+                amp -= amp[0]
+            
+            color = cmap(i/(len(ms2034b_data_list)-1))
+            ax0.plot(sweep.freqs, amp, color=color, linestyle='dotted', linewidth=1)
+            handles.append(Line2D([0], [0], linestyle='dotted', label=sweep.label, color=color))
+    
+    ax0.legend(loc='best', handles=handles, fontsize=8)
+    
+    plt.show()
+
+
         
 '''
             lowpass_cosine function
@@ -943,13 +1054,17 @@ def buildS21Dataset(sweep, ROACH='MISTRAL'):
     
     # data from mistral client to compute amplitude in dBm
     accumulation_length = 2**21
-    fft_len = 1024
+    fft_length = 1024
     pbar = tqdm(range(n_res), position=0, leave=True)
     for i in pbar:
         pbar.set_description("Computing frequencies... ")
+        
+        Q[i] *= (0.5*fft_length) / ((2**31-1)*(accumulation_length-1))
+        I[i] *= (0.5*fft_length) / ((2**31-1)*(accumulation_length-1))
+        
         mag = np.sqrt(Q[i]*Q[i] + I[i]*I[i])
-        mag /= (2**31-1)    # mistral client
-        mag /= (accumulation_length-1)/(0.5*fft_len)    # mistral client
+        #mag /= (2**31-1)    # mistral client
+        #mag /= (accumulation_length-1)/(0.5*fft_length)    # mistral client
         mag = 20*np.log10(mag)
         phase = np.arctan2(Q[i], I[i])
     
@@ -1278,7 +1393,7 @@ def complexS21Plot(complex_fit_data_path):
     
     I = np.load(complex_fit_data_path / "I.npy")
     Q = np.load(complex_fit_data_path / "Q.npy")
-    #mag = np.load(output_path / "mag.npy")
+    mag = np.load(complex_fit_data_path / "mag.npy")
     #ph = np.load(output_path / "phi.npy")
     freqs = np.load(complex_fit_data_path / "freqs.npy")
         
@@ -1334,7 +1449,7 @@ def complexS21Plot(complex_fit_data_path):
     #circlePlot.errorbar(I_prime, Q_prime, xerr=IErr, yerr=QErr, marker='.', linestyle='--', linewidth=1.0, markersize=1.0, color='black', alpha=1.0, label='Tau removed')
     
     # Complex plot 
-    Z_freqs = np.linspace(freqs[0], freqs[-1], num=1000)
+    Z_freqs = np.linspace(freqs[0], freqs[-1], num=2000)
     Z = S_21(Z_freqs, Rea, Ima, Qt, Qc, nu_r, phi0, tau)
     circlePlot.plot(np.real(Z), np.imag(Z), linestyle='-', color='red', alpha=0.5, linewidth=3.0)#, label='S$_{21}$ Fit')
     
@@ -1358,8 +1473,8 @@ def complexS21Plot(complex_fit_data_path):
     
     # amplitude plot
     #amplitudePlot.plot(freqs, A, marker='.', markersize=1.0, color=color_notau, alpha=0.5, label='Amplitude')
-    amplitudePlot.plot(freqs, A/1e6, color=color_notau,linestyle='-', marker='o', markersize=4, markerfacecolor=color_notau_alpha)#, label='Amplitude')
-    amplitudePlot.plot(Z_freqs, np.abs(Z)/1e6, linestyle='-', color='red', alpha=0.5, linewidth=3.0)#, label='S$_{21}$ Fit')
+    amplitudePlot.plot(freqs, mag-mag[0], color=color_notau,linestyle='-', marker='o', markersize=4, markerfacecolor=color_notau_alpha)#, label='Amplitude')
+    amplitudePlot.plot(Z_freqs, 20*np.log10(np.abs(Z))-mag[0], linestyle='-', color='red', alpha=0.5, linewidth=3.0)#, label='S$_{21}$ Fit')
     
     handle = [Line2D([0], [0], color=color_raw,linestyle='-', marker='o', markersize=4, markerfacecolor=color_raw_alpha, label='Raw data'),
               Line2D([0], [0], color=color_notau,linestyle='-', marker='o', markersize=4, markerfacecolor=color_notau_alpha, label=r'$\tau$ removed'),
@@ -1404,10 +1519,10 @@ def complexS21Plot(complex_fit_data_path):
     phasePlot2.xaxis.set_tick_params(direction='in', which='both')
     #plt.setp(phasePlot2.get_xticklabels(), visible=False)
     
-    amplitudePlot.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
+    #amplitudePlot.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
     #amplitudePlot.legend(loc='best')
     amplitudePlot.set_xlabel('Frequency [MHz]')
-    amplitudePlot.set_ylabel(r'Amplitude $\times 10^{{6}}$[au]')
+    amplitudePlot.set_ylabel(r'Amplitude [dBm]')
     amplitudePlot.grid(alpha=0.5)
     amplitudePlot.yaxis.set_ticks_position('both')
     amplitudePlot.xaxis.set_ticks_position('both')
@@ -1416,6 +1531,60 @@ def complexS21Plot(complex_fit_data_path):
     amplitudePlot.xaxis.set_tick_params(direction='in', which='both')
     
     # print the figures
+    plt.show()
+
+
+
+'''
+            Plot picolog data
+'''
+def plotPicolog(filename, OFFSET_TIME=False):
+    '''
+    This function returns a plot of a given picolog file with three channels
+
+    Parameters
+    ----------
+    filename : string
+        The picolog filename.
+    OFFSET_TIME : boolean, optional
+        If True, ch1 (usually time) will start with a zero. The default is 
+        False.
+
+    Returns
+    -------
+    None.
+
+    '''
+    import matplotlib.pyplot as plt
+    from G31_thermometry import Thermometer
+    thermometer = Thermometer(model='DT670', serial_no='D6068043')
+    
+    # read data
+    ch1,ch2,ch3 = np.loadtxt(paths.picolog/filename, dtype=float, skiprows=1, unpack=True, delimiter=',')
+    
+    if OFFSET_TIME:
+        ch1 -= ch1[0]
+    
+    # convert thermometer voltage to temperature
+    temperature = thermometer.temperature(ch2/1000.)
+    
+    fig = plt.figure(figsize=(9,9))
+    ax0 = fig.add_subplot(111)
+    ax0.plot(ch1, temperature, c='black')
+    ax0.set_ylabel('T$^{Cu}$ [K]', color='black')
+    ax0.tick_params(axis='y', colors='black')
+    ax0.set_xlim([ch1[0], ch1[-1]])
+    ax0.xaxis.grid()
+    
+    ax0_ = fig.add_subplot(111, sharex = ax0, frameon = False)
+    ax0_.fill_between(ch1, ch3, 0.0, alpha=0.20, color='red')
+    ax0_.yaxis.set_label_position("right")
+    ax0_.tick_params(axis='y', colors='red')
+    ax0_.yaxis.tick_right()
+    delta_ch3 = ch3.max() - ch3.min()
+    ax0_.set_ylim([ch3.min()-(delta_ch3*0.2), ch3.max()+(delta_ch3*0.2)])
+    ax0_.set_ylabel('Heater [V]', color='red')
+    
     plt.show()
 
 
