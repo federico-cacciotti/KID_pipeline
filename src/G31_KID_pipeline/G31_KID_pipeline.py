@@ -410,6 +410,7 @@ class VNA():
 '''
 class Target():
     def __init__(self, filename, temperature=None, build_dataset=False, label=None, out_of_resonance_parameter=2.0):
+        print("+ + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + +")
         print('Reding target sweep {:s}...'.format(filename))
         self.filename = filename
         self.temperature = temperature
@@ -458,6 +459,7 @@ class Target():
         self.readS21Data()
         
         self.findDouble()
+        print("+ + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + +")
     
 
     # filter out of resonance tones refusing them, sigma_mult allows to refuse out of resonance tones
@@ -466,11 +468,12 @@ class Target():
         
         depths = [self.entry[i]['depth'] for i in range(self.entries)]
         average_depth = np.average(depths)
-        print("average depth: {:f}".format(average_depth))
+        print("\taverage depth: {:f}dB".format(average_depth))
         std_depth = np.std(depths)
-        print("std depth: {:f}".format(std_depth))
-            
+        print("\tstd depth: {:f}dB".format(std_depth))
+        
         threshold = average_depth-std_mult*std_depth
+        print("\tdiscarding tones with depth less than {:f}dB".format(threshold))
         
         out_of_res_number = 0
         for e in self.entry:
@@ -478,11 +481,11 @@ class Target():
                 e['is_out_of_res'] = True
                 out_of_res_number += 1
         
-        print("Found {:d} out of resonance tones: ".format(out_of_res_number))
+        print("\tFound {:d} out of resonance tones: ".format(out_of_res_number))
         if out_of_res_number>0:
             for i,e in enumerate(self.entry):
                 if e['is_out_of_res']:
-                    print("\tChannel {:d} - {:f} MHz".format(i, e['target_freq']))
+                    print("\t\tChannel {:d} - {:f} MHz".format(i, e['target_freq']))
                     
         return out_of_res_number
 
@@ -572,6 +575,7 @@ class Target():
     
     def findDouble(self):
         print("\nSearching for double resonances...")
+        double_found = False
         
         from scipy.signal import find_peaks
         
@@ -590,6 +594,11 @@ class Target():
                     print("\tFound ", n_peaks, " resonances in channel ", channel)
                 
                 e['number_of_peaks'] = n_peaks
+                if n_peaks>1:
+                    double_found = True
+        
+        if not double_found:
+            print("\tNo double resonance found!")
     
     
     
@@ -1029,9 +1038,9 @@ def buildS21Dataset(sweep, ROACH='MISTRAL'):
     print("\nBuilding S21 dataset from raw data sweep...")
     
     if ROACH == "OLIMPO":
-        print("OLIMPO ROACH selected (freqs = LO/2 + bb)")
+        print("\tOLIMPO ROACH selected (freqs = LO/2 + bb)")
     elif ROACH == "MISTRAL":
-        print("MISTRAL ROACH selected (freqs = LO + bb)")
+        print("\tMISTRAL ROACH selected (freqs = LO + bb)")
     
     LO_freqs = np.load(sweep_path / "sweep_freqs.npy")
     bb_freqs = np.load(sweep_path / "bb_freqs.npy")
@@ -1044,7 +1053,7 @@ def buildS21Dataset(sweep, ROACH='MISTRAL'):
     
     pbar = tqdm(LO_freqs, position=0, leave=True)
     for i_file, LO_freq in enumerate(pbar):
-        pbar.set_description("Reading LO data... ")
+        pbar.set_description("\tReading LO data... ")
         I_all = np.load(sweep_path / ("I"+str(LO_freq)+".npy"))
         Q_all = np.load(sweep_path / ("Q"+str(LO_freq)+".npy"))
     
@@ -1057,7 +1066,7 @@ def buildS21Dataset(sweep, ROACH='MISTRAL'):
     fft_length = 1024
     pbar = tqdm(range(n_res), position=0, leave=True)
     for i in pbar:
-        pbar.set_description("Computing frequencies... ")
+        pbar.set_description("\tComputing frequencies... ")
         
         Q[i] *= (0.5*fft_length) / ((2**31-1)*(accumulation_length-1))
         I[i] *= (0.5*fft_length) / ((2**31-1)*(accumulation_length-1))
