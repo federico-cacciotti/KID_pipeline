@@ -1,5 +1,5 @@
 from . import datapaths
-from . import pipeline_functions
+from . import pipeline_functions as functions
 from .Target import *
 from .VNA import *
 from .MS2034B import *
