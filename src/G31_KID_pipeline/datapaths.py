@@ -1,28 +1,16 @@
 from pathlib import Path
 
-target = Path('target')
-vna = Path('vna')
-target_S21 = Path('target_S21')
-vna_S21 = Path('vna_S21')
-dirfile = Path('data_logger')
-output_noise = Path('noise')
-cosmic_rays = Path('cosmic_rays')
-picolog = Path('picolog')
-anritsuMS2034B = Path('anritsu_MS2034B')
-    
-def set_wd(working_directory=''):
-    target = Path(working_directory) / Path('target')
-    vna = Path(working_directory) / Path('vna')
-    target_S21 = Path(working_directory) / Path('target_S21')
-    vna_S21 = Path(working_directory) / Path('vna_S21')
-    dirfile = Path(working_directory) / Path('data_logger')
-    output_noise = Path(working_directory) / Path('noise')
-    cosmic_rays = Path(working_directory) / Path('cosmic_rays')
-    picolog = Path(working_directory) / Path('picolog')
-    anritsuMS2034B = Path(working_directory) / Path('anritsu_MS2034B')
-    
-    # check if data directories exist
-    check_if_dirs_exist(mkdir=True)
+working_directory = '/Users/federicocacciotti/Documents/PhD/dati'
+
+target = Path(working_directory) / Path('target')
+vna = Path(working_directory) / Path('vna')
+target_S21 = Path(working_directory) / Path('target_S21')
+vna_S21 = Path(working_directory) / Path('vna_S21')
+dirfile = Path(working_directory) / Path('data_logger')
+output_noise = Path(working_directory) / Path('noise')
+cosmic_rays = Path(working_directory) / Path('cosmic_rays')
+picolog = Path(working_directory) / Path('picolog')
+anritsuMS2034B = Path(working_directory) / Path('anritsu_MS2034B')
 
 
 def check_if_dirs_exist(mkdir = False):
@@ -88,3 +76,8 @@ def check_if_dirs_exist(mkdir = False):
         if mkdir: 
             picolog.mkdir()
             print(picolog.as_posix() + add_dir_msg)
+            
+            
+            
+# check if data directories exist
+check_if_dirs_exist(mkdir=True)

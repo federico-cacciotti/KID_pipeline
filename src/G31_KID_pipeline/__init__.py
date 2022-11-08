@@ -1,9 +1,8 @@
-from . G31_KID_pipeline import *
-from . Target import *
-from . VNA import *
-from . Datapaths import Datapaths
-
-paths = Datapaths()
+from . import datapaths
+from . import pipeline_functions
+from .Target import *
+from .VNA import *
+from .MS2034B import *
 
 __version__ = '1.1.0'
 __author__ = 'Federico Cacciotti'

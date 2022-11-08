@@ -207,7 +207,7 @@ class Target():
             except:
                 print(self.temperature, e['target_freq'], e['channel'], e['depth'], e['is_out_of_res'], e['number_of_peaks'], None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
     
-    def plotTarget(self, flat_at_0db=False):
+    def plotSweep(self, flat_at_0db=False):
         from matplotlib import pyplot as plt
         fig,ax = plt.subplots()
         
