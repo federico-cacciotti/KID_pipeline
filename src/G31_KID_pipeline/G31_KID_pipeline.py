@@ -326,7 +326,7 @@ class VNA():
         
     def findPeaks(self, xlim=[0, 700], mag_filt='airp_lss', phase_filt='lowpass_cosine', peak_width=(1.0, 150.0), peak_height=1.0, peak_prominence=(1.0, 30.0)):
         '''
-        
+        A function that searh for resonances in the VNA sweep
 
         Parameters
         ----------
