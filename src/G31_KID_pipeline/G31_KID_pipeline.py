@@ -52,6 +52,19 @@ class Data_paths():
 
 
     def check_if_dirs_exist(self, mkdir = False):
+        '''
+        Function that checks if data directories exist.
+
+        Parameters
+        ----------
+        mkdir : boolean, optional
+            If True the data directories will be created. The default is False.
+
+        Returns
+        -------
+        None.
+
+        '''
         
         error_msg = ' directory does not exists'
         add_dir_msg = ' directory added'
@@ -111,6 +124,24 @@ paths = Data_paths()
 '''
 class VNA():
     def __init__(self, filename, temperature=None, build_dataset=False):
+        '''
+        Class for reading the ROACH VNA sweeps.
+
+        Parameters
+        ----------
+        filename : string
+            The filename of the VNA sweep.
+        temperature : float, optional
+            The temperature of the VNA sweep in mK. The default is None.
+        build_dataset : boolean, optional
+            If True the raw data from the ROACH is converted in .npy files. 
+            The default is False.
+
+        Returns
+        -------
+        None.
+
+        '''
         print('Reding VNA sweep {:s}...'.format(filename))
         self.filename = filename
         self.temperature = temperature
@@ -126,6 +157,30 @@ class VNA():
             
             
     def removeBaseline(self, mag_filt='airp_lss', phase_filt='lowpass_cosine'):
+        '''
+        Remove the baseline of the VNA sweep in order to find resonances
+
+        Parameters
+        ----------
+        mag_filt : string, optional
+            Filter algorithm for the amplitude data. It can be:
+                - 'lowpass_cosine' for a low pass filter algorithm;
+                - 'a_lss' for an asymmetric leas square smoothing algorithm;
+                - 'airp_lss' for an adaptive iteratively reweighted penalized
+                    least square smoothing algorithm.
+            default is 'airp_lss'.
+        phase_filt : string, optional
+            Same description as the mag_filt parameter. 'lowpass_cosine' works
+            better. The default is 'lowpass_cosine'.
+
+        Returns
+        -------
+        mag : numpy array
+            Filtered amplitude.
+        phase : numpy arra
+            Filtered phase.
+
+        '''
         if mag_filt==None:
             mag_filt = 'None'
         if phase_filt==None:
@@ -219,6 +274,29 @@ class VNA():
         return mag, phase
     
     def plotVNA(self, xlim=[0, 700], mag_filt='airp_lss', phase_filt='lowpass_cosine'):
+        '''
+        This function plots both the amplitude and phase data of the VNA sweep.
+
+        Parameters
+        ----------
+        xlim : tuple, optional
+            x axis limits. The default is [0, 700].
+        mag_filt : string, optional
+            Filter algorithm for the amplitude data. It can be:
+                - 'lowpass_cosine' for a low pass filter algorithm;
+                - 'a_lss' for an asymmetric leas square smoothing algorithm;
+                - 'airp_lss' for an adaptive iteratively reweighted penalized
+                    least square smoothing algorithm.
+            default is 'airp_lss'.
+        phase_filt : string, optional
+            Same description as the mag_filt parameter. 'lowpass_cosine' works
+            better. The default is 'lowpass_cosine'.
+
+        Returns
+        -------
+        None.
+
+        '''
         print("Plot VNA sweep...")
         mag, phase = self.removeBaseline(mag_filt, phase_filt)
         
@@ -247,6 +325,41 @@ class VNA():
         
         
     def findPeaks(self, xlim=[0, 700], mag_filt='airp_lss', phase_filt='lowpass_cosine', peak_width=(1.0, 150.0), peak_height=1.0, peak_prominence=(1.0, 30.0)):
+        '''
+        
+
+        Parameters
+        ----------
+        xlim : tuple, optional
+            x axis limits. The default is [0, 700].
+        mag_filt : string, optional
+            Filter algorithm for the amplitude data. It can be:
+                - 'lowpass_cosine' for a low pass filter algorithm;
+                - 'a_lss' for an asymmetric leas square smoothing algorithm;
+                - 'airp_lss' for an adaptive iteratively reweighted penalized
+                    least square smoothing algorithm.
+            default is 'airp_lss'.
+        phase_filt : string, optional
+            Same description as the mag_filt parameter. 'lowpass_cosine' works
+            better. The default is 'lowpass_cosine'.
+        peak_width : float of tuple, optional
+            Minimum width of peaks or range of values. The default is 
+            (1.0, 150.0).
+        peak_height : float or tuple, optional
+            Minimum height of peaks or range of values. The default is 1.0.
+        peak_prominence : float or tuple, optional
+            Minimum prominence of peaks or range of values. The default is (1.0, 30.0).
+            
+        For other information see scipy.signal.find_peaks() help.
+
+        Returns
+        -------
+        peaks : nunpy array
+            index of peaks.
+        peaks_info : dictionary
+            info on peaks.
+
+        '''
         print('Peak finding...')
         
         mag, phase = self.removeBaseline(mag_filt, phase_filt)
@@ -601,6 +714,13 @@ class Target():
             print("\tNo double resonance found!")
     
     
+    def entry_parameters_to_table(self):
+        print('temperature target_freq channel depth is_out_of_res number_of_peaks Re[a] Re[a]_err Im[a] Im[a]_err Q_tot Q_tot_err Q_i Q_i_err Q_c Q_c_err nu_r nu_r_err phi_0 phi_0_err reduced_chi2')
+        for e in self.entry:
+            try:
+                print(self.temperature, e['target_freq'], e['channel'], e['depth'], e['is_out_of_res'], e['number_of_peaks'], e['Re[a]'].n, e['Re[a]'].s, e['Im[a]'].n, e['Im[a]'].s, e['Q_tot'].n, e['Q_tot'].s, e['Q_i'].n, e['Q_i'].s, e['Q_c'].n, e['Q_c'].s, e['nu_r'].n, e['nu_r'].s, e['phi_0'].n, e['phi_0'].s, e['reduced_chi2'])
+            except:
+                print(self.temperature, e['target_freq'], e['channel'], e['depth'], e['is_out_of_res'], e['number_of_peaks'], None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
     
     def plotTarget(self, flat_at_0db=False):
         from matplotlib import pyplot as plt
@@ -730,20 +850,31 @@ class Target():
             readMS2034B function
 '''   
 class readMS2034B():
-    def __init__(self, filename, label=None):
+    def __init__(self, filename, label=None, mode='real_imag'):
         self.filename = filename
+        self.mode = mode
         
         if label != None:
             self.label = label
         else:
             self.label = filename
         
-        [self.freqs, self.ReS11, self.ImS11, self.ReS21, self.ImS21, 
-         self.ReS12, self.ImS12, self.ReS22, self.ImS22] = np.loadtxt(fname=paths.anritsuMS2034B / filename, dtype=float, skiprows=23, unpack=True)
+        if self.mode == 'real_imag':
+            [self.freqs, self.ReS11, self.ImS11, self.ReS21, self.ImS21, 
+             self.ReS12, self.ImS12, self.ReS22, self.ImS22] = np.loadtxt(fname=paths.anritsuMS2034B / filename, dtype=float, skiprows=23, unpack=True)
+        
+        if self.mode == 'log_mag_phase':
+            [self.freqs, self.S11DB, self.S11A, self.S21DB, self.S21A, 
+             self.S12DB, self.S12A, self.S22DB, self.S22A] = np.loadtxt(fname=paths.anritsuMS2034B / filename, dtype=float, skiprows=23, unpack=True)
+        
         self.freqs *= 1e3 # GHz to MHz
     
     
     def fitS21(self):
+        if self.mode != 'real_imag':
+            print('S21 fit only available for "real_imag" .s2p file format.')
+            return
+        
         I = self.ReS21
         Q = self.ImS21
         
@@ -754,6 +885,7 @@ class readMS2034B():
         np.save(out_path/"I.npy", arr=I)
         np.save(out_path/"Q.npy", arr=Q)
         np.save(out_path/"freqs.npy", arr=self.freqs)
+        np.save(out_path/"mag.npy", arr=amp)
         
         try:
             params, chi2 = complexS21Fit(I=I, Q=Q, freqs=self.freqs, res_freq=res_freq, 
@@ -773,6 +905,10 @@ class readMS2034B():
         
     
     def plotS21(self):
+        if self.mode != 'real_imag':
+            print('S21 plot only available for "real_imag" .s2p file format.')
+            return
+        
         target_path = paths.anritsuMS2034B
         complexS21Plot(target_path)
     
@@ -784,9 +920,14 @@ class readMS2034B():
         ax1 = plt.subplot(223)
         ax2 = plt.subplot(222)
         
-        amp = 20*np.log10(np.sqrt(self.ReS21**2 + self.ImS21**2))
-        ph = np.arctan2(self.ImS21, self.ReS21)
-        ph = np.unwrap(ph)
+        if self.mode == 'log_mag_phase':
+            amp = self.S21DB
+            ph = self.S21A
+            ph = np.unwrap(ph)
+        if self.mode == 'real_imag':
+            amp = 20*np.log10(np.sqrt(self.ReS21**2 + self.ImS21**2))
+            ph = np.arctan2(self.ImS21, self.ReS21)
+            ph = np.unwrap(ph)
         
         ax0.plot(self.freqs, amp, color='black', linewidth=1)
         ax1.plot(self.freqs, ph, color='black', linewidth=1)
@@ -854,23 +995,101 @@ def overplotTarget(targets=None, ms2034b_data_list=None, complex_fit_above=False
             
             for e in target.entry:
                 # read one sweep at a time
-                channel = e['channel']
-                x_data_chan = np.load(paths.target_S21 / target.filename / "{:03d}".format(channel) / "freqs.npy")
-                y_data_chan = np.load(paths.target_S21 / target.filename / "{:03d}".format(channel) / "mag.npy")
-            
-                if flat_at_0db:
-                    y_offset = y_data_chan[0]
-                    y_data_chan -= y_offset
-            
-                ax0.plot(x_data_chan, y_data_chan, color=color)
-                
-                if complex_fit_above and e['is_out_of_res']==False:
-                    nu = np.linspace(x_data_chan[0], x_data_chan[-1], num=2000)
-                    Z = S_21(nu, e['Re[a]'].n, e['Im[a]'].n, e['Q_tot'].n, e['Q_c'].n, e['nu_r'].n, e['phi_0'].n, tau=0.04)
-                    mag = 20*np.log10(np.abs(Z))
+                if e['is_out_of_res']==False:
+                    channel = e['channel']
+                    x_data_chan = np.load(paths.target_S21 / target.filename / "{:03d}".format(channel) / "freqs.npy")
+                    y_data_chan = np.load(paths.target_S21 / target.filename / "{:03d}".format(channel) / "mag.npy")
+                    
                     if flat_at_0db:
-                        mag -= y_offset
-                    ax0.plot(nu, mag, linestyle='solid', color=color, alpha=0.6, linewidth=4)
+                        y_offset = y_data_chan[0]
+                        y_data_chan -= y_offset
+                
+                    ax0.plot(x_data_chan, y_data_chan, color=color, linestyle='', marker='o', markersize=5)
+                    
+                    if complex_fit_above:
+                        nu_linear = np.linspace(x_data_chan[0], x_data_chan[-1], num=200) # linear sample
+                        nu_peack = np.random.normal(e['nu_r'].n, 0.001, 1000) # peak sample
+                        nu = np.concatenate([nu_linear, nu_peack])
+                        nu = np.sort(nu)
+                        Z = S_21(nu, e['Re[a]'].n, e['Im[a]'].n, e['Q_tot'].n, e['Q_c'].n, e['nu_r'].n, e['phi_0'].n, tau=0.04)
+                        mag = 20*np.log10(np.abs(Z))
+                        if flat_at_0db:
+                            mag -= y_offset
+                        ax0.plot(nu, mag, linestyle='solid', color=color, alpha=0.6, linewidth=4)
+                
+            handles.append(Line2D([0], [0], label=target.label, color=color))
+            
+    # plot ms2034b VNA sweeps
+    if ms2034b_data_list != None:
+        for i,sweep in enumerate(ms2034b_data_list):
+            if sweep.mode == 'log_mag_phase':
+                amp = sweep.S21DB
+                ph = sweep.S21A
+                ph = np.unwrap(ph)
+            if sweep.mode == 'real_imag':
+                amp = 20*np.log10(np.sqrt(sweep.ReS21**2 + sweep.ImS21**2))
+                ph = np.arctan2(sweep.ImS21, sweep.ReS21)
+                ph = np.unwrap(ph)
+            
+            if flat_at_0db:
+                amp -= amp[0]
+            
+            color = cmap(i/(len(ms2034b_data_list)-1))
+            ax0.plot(sweep.freqs, amp, color=color, linestyle='dotted', linewidth=1)
+            handles.append(Line2D([0], [0], linestyle='dotted', label=sweep.label, color=color))
+    
+    ax0.legend(loc='best', handles=handles, fontsize=8)
+    
+    plt.show()
+
+
+
+def overplotTargetCircles(targets=None, ms2034b_data_list=None, complex_fit_above=False, colormap='coolwarm'):
+    from matplotlib import pyplot as plt
+    from matplotlib.lines import Line2D
+    from matplotlib import cm
+    cmap = cm.get_cmap(colormap, lut=None)
+    
+    fig = plt.figure()
+    fig.set_size_inches(7, 7)
+    ax0 = plt.subplot(111)
+    
+    ax0.yaxis.set_ticks_position('both')
+    ax0.xaxis.set_ticks_position('both')
+    ax0.minorticks_on()
+    ax0.yaxis.set_tick_params(direction='in', which='both')
+    ax0.xaxis.set_tick_params(direction='in', which='both')
+    ax0.grid(linestyle='-', alpha=0.5)
+    ax0.set_ylabel('Q')
+    ax0.set_xlabel('I')
+    ax0.set_aspect('equal')
+    
+    # plot roach target sweeps
+    handles = []
+    if targets != None:
+        for i,target in enumerate(targets):
+            
+            color = cmap(i/(len(targets)-1))
+            
+            for e in target.entry:
+                # read one sweep at a time
+                if e['is_out_of_res']==False:
+                    channel = e['channel']
+                    x_data_chan = np.load(paths.target_S21 / target.filename / "{:03d}".format(channel) / "freqs.npy")
+                    
+                    I = np.load(paths.target_S21 / target.filename / "{:03d}".format(channel) / "I_prime.npy")
+                    Q = np.load(paths.target_S21 / target.filename / "{:03d}".format(channel) / "Q_prime.npy")
+                
+                    ax0.plot(I, Q, color=color, linestyle='', marker='o', markersize=5)
+                
+                    if complex_fit_above:
+                        nu_linear = np.linspace(x_data_chan[0], x_data_chan[-1], num=200) # linear sample
+                        nu_peack = np.random.normal(e['nu_r'].n, 0.001, 1000) # peak sample
+                        nu = np.concatenate([nu_linear, nu_peack])
+                        nu = np.sort(nu)
+                        Z = S_21(nu, e['Re[a]'].n, e['Im[a]'].n, e['Q_tot'].n, e['Q_c'].n, e['nu_r'].n, e['phi_0'].n, tau=0.04)
+                        
+                        ax0.plot(np.real(Z), np.imag(Z), linestyle='solid', color=color, alpha=0.6, linewidth=4)
                 
             handles.append(Line2D([0], [0], label=target.label, color=color))
             
@@ -878,9 +1097,6 @@ def overplotTarget(targets=None, ms2034b_data_list=None, complex_fit_above=False
     if ms2034b_data_list != None:
         for i,sweep in enumerate(ms2034b_data_list):
             amp = 20*np.log10(np.sqrt(sweep.ReS21**2.0 + sweep.ImS21**2.0))
-            
-            if flat_at_0db:
-                amp -= amp[0]
             
             color = cmap(i/(len(ms2034b_data_list)-1))
             ax0.plot(sweep.freqs, amp, color=color, linestyle='dotted', linewidth=1)
@@ -1596,6 +1812,149 @@ def plotPicolog(filename, OFFSET_TIME=False):
     
     plt.show()
 
+def Delta(T_c):
+    from scipy.constants import k as kb
+    return 1.764*kb*T_c
+
+def n_qp(T, T_c, N_0):
+    from scipy.constants import k as kb
+    return 2.0*N_0*np.sqrt(2.0*np.pi*kb*T*Delta(T_c)) * np.exp(-Delta(T_c)/(kb*T))
+
+def electrical_phase_responsivity_linear_fit(nu_r, base_nu_r, T, T_c, N_0, V_abs, label='pixel', color='black', axis=None):
+    from lmfit import Minimizer, Parameters
+    from uncertainties import ufloat
+    
+    # converts lists to np arrays
+    delta_x = [(n-base_nu_r)/base_nu_r for n in nu_r]
+    error_max = max([d.s for d in delta_x])
+    delta_x = [(n-base_nu_r)/base_nu_r + 0.5*ufloat(0.0, error_max) for n in nu_r]
+    
+    T = np.asarray(T)
+    
+    # function used for the fit procedure
+    def linear_function(x, m, q):
+        return x*m + q
+    
+    def fcn2min(params, x, data, errs=None):
+        m = params['m']
+        q = params['q']
+        
+        model = linear_function(x, m, q)
+        
+        if errs is None:
+            return data-model
+        
+        return (data-model)/errs
+    
+    # quasiparticle number density
+    N_qp = V_abs * n_qp(T, T_c, N_0)
+    
+    # linear fit
+    params = Parameters()
+    params.add('m', value=(min(delta_x).n-max(delta_x).n)/(max(N_qp)-min(N_qp)), min=0, max=-np.inf)
+    params.add('q', value=0.0, min=-1, max=1)
+    
+    try:
+        result = Minimizer(fcn2min, params, fcn_args=(N_qp, [d.n for d in delta_x], [d.s for d in delta_x])).minimize(method='least_squares')
+        if axis is not None:
+            axis.ticklabel_format(axis='both', style='sci', useMathText=True, scilimits=(0,0))
+            
+            axis.set_xlabel("Quasiparticle number")
+            axis.set_ylabel("Relative resonant frequency shift")
+            
+            axis.errorbar(N_qp, [d.n for d in delta_x], yerr=[d.s for d in delta_x], color=color, linestyle='', fmt='o', capsize=2, markersize=3)
+            axis.plot(N_qp, linear_function(N_qp, result.params['m'].value, result.params['q'].value), color=color, label=label)
+            
+            axis.grid(color='gray', alpha=0.4)
+            
+            return result.params
+    except:
+        print("Cannot find fit parameters.")
+        return
+        
+    return result.params
+
+'''
+noise_type = 'chp' or 'cha'
+'''
+def plot_extracted_stream(filename, channel, axis, noise_type='chp', label=None, color=None, linestyle='solid', linewidth=1):
+    path = paths.output_noise / filename
+
+    if label is None:
+        label = noise_type+'_{:03d}'.format(channel)
+
+    # open time streams
+    time_stream = np.load(path / 'time_stream.npy')
+    ch = np.load(path / (noise_type+'_{:03d}.npy'.format(channel)) )
+
+    axis.plot(time_stream, ch, color=color, label=label, linestyle=linestyle, linewidth=linewidth)
+    axis.grid(color="gray", alpha=0.5)
+    axis.set_xlabel("Time [s]")
+    axis.set_ylabel(noise_type)
+
+
+'''
+noise_type = 'chp' or 'cha'
+'''
+def plot_extracted_noise_spectral_density(filename, channel, sampling_frequency, axis, noise_type='chp', label=None, color=None, linestyle='solid', linewidth=1):
+    from scipy.signal import periodogram
+    
+    path = paths.output_noise / filename
+    
+    if label is None:
+        label = noise_type+'_{:03d}'.format(channel)
+
+    # open time streams
+    time_stream = np.load(path / 'time_stream.npy')
+    ch = np.load(path / (noise_type+'_{:03d}.npy'.format(channel)) )
+    
+    freqs, noise_spectral_density = periodogram(ch, fs=sampling_frequency, window="han")
+
+    axis.plot(freqs, noise_spectral_density, color=color, label=label, linestyle=linestyle, linewidth=linewidth)
+    axis.grid(color="gray", alpha=0.5)
+    axis.set_xlabel("Frequency [Hz]")
+    axis.set_xlim([freqs[0], freqs[-1]])
+    axis.set_xscale('log')
+    axis.set_yscale('log')
+    axis.set_ylabel("Noise spectral density [1/Hz]")
+    
+    return freqs, noise_spectral_density
+    
+    
+    
+'''
+
+'''
+def plot_S21_MS2034B(ms2034b_object, axis, label=None, linestyle='solid', linewidth=1, color='black'):
+    if label is None:
+        label = ms2034b_object.label
+
+    if ms2034b_object.mode == 'real_imag':
+        S21 = np.sqrt(ms2034b_object.ReS21**2.0 + ms2034b_object.ImS21**2.0)
+    if ms2034b_object.mode == 'log_mag_phase':
+        S21 = ms2034b_object.S21DB
+
+    axis.plot(ms2034b_object.freqs, S21, color=color, label=label, linestyle=linestyle, linewidth=linewidth)
+    axis.grid(color="gray", alpha=0.5)
+    axis.set_xlabel("Frequency [MHz]")
+    axis.set_ylabel("$|S_{21}|$ [dBm]")
+
+
+
+def electrical_phase_noise_equivalent_power(responsivity, noise_spectral_density, freqs, axis=None, label='ch', color='black', linestyle='solid', linewidth=1):
+
+    NEP = np.sqrt(noise_spectral_density)/responsivity  
+
+    axis.plot(freqs, NEP, color=color, label=label, linestyle=linestyle, linewidth=linewidth)
+    axis.grid(color="gray", alpha=0.5)
+    axis.set_xlabel("Frequency [Hz]")
+    axis.set_xlim([freqs[0], freqs[-1]])
+    axis.set_xscale('log')
+    axis.set_yscale('log')
+    axis.set_ylabel("NEP$_{el}^{ph}$ [W/$\sqrt{Hz}$]")
+    
+    return freqs, NEP
+
 
 '''
             lsTarget function
@@ -1653,9 +2012,4 @@ def lsVNA():
         print(vna)
     print('') 
     return vna_list, vna_S21_list
-    
-    
-    
-
-    
     
