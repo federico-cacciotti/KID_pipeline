@@ -9,9 +9,9 @@ from . import datapaths
 
 
 '''
-        Function for overplotting target data
+        Function for overplotting targets and MS2034B data
 '''
-def overplotTarget(targets=None, ms2034b_data_list=None, complex_fit_above=False, flat_at_0db=True, colormap='coolwarm'):
+def overplotTargetSweeps(targets=None, ms2034b_data_list=None, complex_fit_above=False, flat_at_0db=True, colormap='coolwarm'):
     from matplotlib import pyplot as plt
     from matplotlib.lines import Line2D
     from matplotlib import cm
@@ -855,6 +855,30 @@ def plotPicolog(filename, OFFSET_TIME=False):
     ax0_.set_ylabel('Heater [V]', color='red')
     
     plt.show()
+    
+    
+
+
+'''
+        
+'''
+def plot_target(target, axis, label=None, color=None, linestyle='solid', linewidth=1, flat_at_0db=False):
+    
+    for e in target.entry:
+        # read one sweep at a time
+        channel = e['channel']
+        x_data_chan = np.load(datapaths.target_S21 / target.filename / "{:03d}".format(channel) / "freqs.npy")
+        y_data_chan = np.load(datapaths.target_S21 / target.filename / "{:03d}".format(channel) / "mag.npy")
+        
+        if flat_at_0db:
+            y_data_chan -= max(y_data_chan)
+        
+        if e['is_out_of_res']:
+            axis.plot(x_data_chan, y_data_chan, linewidth=linewidth, alpha=0.2, color=color)
+        else:
+            axis.plot(x_data_chan, y_data_chan, linewidth=linewidth, linestyle=linestyle, color=color)
+    
+
 
 def Delta(T_c):
     from scipy.constants import k as kb
