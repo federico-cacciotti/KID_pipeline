@@ -157,7 +157,7 @@ class VNA():
     
         return mag, phase
     
-    def plotSweep(self, xlim=[0, 700], mag_filt='airp_lss', phase_filt='lowpass_cosine'):
+    def plotSweep(self, xlim=None, mag_filt='airp_lss', phase_filt='lowpass_cosine'):
         '''
         This function plots both the amplitude and phase data of the VNA sweep.
 

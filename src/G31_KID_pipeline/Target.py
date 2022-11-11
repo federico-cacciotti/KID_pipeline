@@ -324,4 +324,6 @@ class Target():
     def plotS21(self, channel):
         target_path = datapaths.target_S21 / self.filename / '{:03d}'.format(channel)
         
-        complexS21Plot(target_path)
+        pf.complexS21Plot(target_path)
+        
+        
