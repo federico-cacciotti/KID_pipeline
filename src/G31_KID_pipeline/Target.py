@@ -102,13 +102,12 @@ class Target():
                     I = np.load(path / "{:03d}".format(c) / "I.npy", allow_pickle=True)
                     Q = np.load(path / "{:03d}".format(c) / "Q.npy", allow_pickle=True)
                     freqs = np.load(path / "{:03d}".format(c) / "freqs.npy", allow_pickle=True)
-                    in_path = datapaths.target / self.filename / "{:03d}".format(c)
                     out_path = datapaths.target_S21 / self.filename / "{:03d}".format(c)
                     
                     try:
                         params, chi2 = pf.complexS21Fit(I=I, Q=Q, freqs=freqs, res_freq=e['target_freq'], 
                                                output_path=out_path, DATAPOINTS=DATAPOINTS)
-                    
+                        
                         if params != None:
                             e['Re[a]'] = params['Re[a]']
                             e['Im[a]'] = params['Im[a]']
@@ -117,14 +116,15 @@ class Target():
                             e['Q_i'] = params['Q_i']
                             e['nu_r'] = params['nu_r']
                             e['phi_0'] = params['phi_0']
-                            e['reduced_chi2'] = chi2
+                            e['reduced_chi2'] = float(chi2)
+                            
                     except:
                         pass
+            
         else:
             I = np.load(path / "{:03d}".format(channel) / "I.npy", allow_pickle=True)
             Q = np.load(path / "{:03d}".format(channel) / "Q.npy", allow_pickle=True)
             freqs = np.load(path / "{:03d}".format(channel) / "freqs.npy", allow_pickle=True)
-            in_path = datapaths.target / self.filename / "{:03d}".format(channel)
             out_path = datapaths.target_S21 / self.filename / "{:03d}".format(channel)
             
             try:
@@ -138,7 +138,7 @@ class Target():
                 self.entry[channel]['Q_i'] = params['Q_i']
                 self.entry[channel]['nu_r'] = params['nu_r']
                 self.entry[channel]['phi_0'] = params['phi_0']
-                self.entry[channel]['reduced_chi2'] = chi2
+                self.entry[channel]['reduced_chi2'] = float(chi2)
             
             except:
                 print("Not able to perform a complex fit.")
@@ -149,23 +149,22 @@ class Target():
         from uncertainties import ufloat
         known_resonaces_not_fitted = 0
         for i,e in enumerate(self.entry):
-            if not e['is_out_of_res']:
-                try:
-                    file_path = datapaths.target_S21 / self.filename / '{:03d}'.format(i)
-                    [Rea_n, Rea_s, Ima_n, Ima_s, Q_tot_n, Q_tot_s, Q_c_n, Q_c_s, 
-                     Q_i_n, Q_i_s, nu_r_n, nu_r_s, phi_0_n, phi_0_s, tau] = np.load(file_path / "complex_parameters.npy", allow_pickle=False)
-                    
-                    e['reduced_chi2'] = np.load(file_path / "reduced_chi2.npy", allow_pickle=False)
-                    
-                    e['Re[a]'] = ufloat(Rea_n, Rea_s)
-                    e['Im[a]'] = ufloat(Ima_n, Ima_s)
-                    e['Q_tot'] = ufloat(Q_tot_n, Q_tot_s)
-                    e['Q_c'] = ufloat(Q_c_n, Q_c_s)
-                    e['Q_i'] = ufloat(Q_i_n, Q_i_s)
-                    e['nu_r'] = ufloat(nu_r_n, nu_r_s)
-                    e['phi_0'] = ufloat(phi_0_n, phi_0_s)
-                except: 
-                    known_resonaces_not_fitted += 1
+            try:
+                file_path = datapaths.target_S21 / self.filename / '{:03d}'.format(i)
+                [Rea_n, Rea_s, Ima_n, Ima_s, Q_tot_n, Q_tot_s, Q_c_n, Q_c_s, 
+                 Q_i_n, Q_i_s, nu_r_n, nu_r_s, phi_0_n, phi_0_s, tau] = np.load(file_path / "complex_parameters.npy", allow_pickle=False)
+                
+                e['reduced_chi2'] = float(np.load(file_path / "reduced_chi2.npy", allow_pickle=False))
+                
+                e['Re[a]'] = ufloat(Rea_n, Rea_s)
+                e['Im[a]'] = ufloat(Ima_n, Ima_s)
+                e['Q_tot'] = ufloat(Q_tot_n, Q_tot_s)
+                e['Q_c'] = ufloat(Q_c_n, Q_c_s)
+                e['Q_i'] = ufloat(Q_i_n, Q_i_s)
+                e['nu_r'] = ufloat(nu_r_n, nu_r_s)
+                e['phi_0'] = ufloat(phi_0_n, phi_0_s)
+            except: 
+                known_resonaces_not_fitted += 1
     
         if known_resonaces_not_fitted>0:
             print("\nComplex fit parameters not available for {:d}/{:d} resonances.".format(known_resonaces_not_fitted, self.entries-self.out_of_res))

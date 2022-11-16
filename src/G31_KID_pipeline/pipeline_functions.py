@@ -11,7 +11,7 @@ from . import datapaths
 '''
         Function for overplotting targets and MS2034B data
 '''
-def overplotTargetSweeps(targets=None, ms2034b_data_list=None, complex_fit_above=False, flat_at_0db=True, colormap='coolwarm'):
+def overplotTargetSweeps(targets=None, ms2034b_data_list=None, channel_index=False, add_out_of_res_plot=False, complex_fit_above=False, flat_at_0db=True, colormap='coolwarm'):
     from matplotlib import pyplot as plt
     from matplotlib.lines import Line2D
     from matplotlib import cm
@@ -39,7 +39,7 @@ def overplotTargetSweeps(targets=None, ms2034b_data_list=None, complex_fit_above
             
             for e in target.entry:
                 # read one sweep at a time
-                if e['is_out_of_res']==False:
+                if not e['is_out_of_res'] or add_out_of_res_plot:
                     channel = e['channel']
                     x_data_chan = np.load(datapaths.target_S21 / target.filename / "{:03d}".format(channel) / "freqs.npy")
                     y_data_chan = np.load(datapaths.target_S21 / target.filename / "{:03d}".format(channel) / "mag.npy")
@@ -50,16 +50,23 @@ def overplotTargetSweeps(targets=None, ms2034b_data_list=None, complex_fit_above
                 
                     ax0.plot(x_data_chan, y_data_chan, color=color, linestyle='', marker='o', markersize=5)
                     
+                    # plot the channel index above the correspondend sweep
+                    if channel_index:
+                        ax0.text(x_data_chan[0], y_data_chan[0], str(e['channel']), color=color)
+                    
                     if complex_fit_above:
-                        nu_linear = np.linspace(x_data_chan[0], x_data_chan[-1], num=200) # linear sample
-                        nu_peack = np.random.normal(e['nu_r'].n, 0.001, 1000) # peak sample
-                        nu = np.concatenate([nu_linear, nu_peack])
-                        nu = np.sort(nu)
-                        Z = S_21(nu, e['Re[a]'].n, e['Im[a]'].n, e['Q_tot'].n, e['Q_c'].n, e['nu_r'].n, e['phi_0'].n, tau=0.04)
-                        mag = 20*np.log10(np.abs(Z))
-                        if flat_at_0db:
-                            mag -= y_offset
-                        ax0.plot(nu, mag, linestyle='solid', color=color, alpha=0.6, linewidth=4)
+                        try:
+                            nu_linear = np.linspace(x_data_chan[0], x_data_chan[-1], num=200) # linear sample
+                            nu_peack = np.random.normal(e['nu_r'].n, 0.001, 1000) # peak sample
+                            nu = np.concatenate([nu_linear, nu_peack])
+                            nu = np.sort(nu)
+                            Z = S_21(nu, e['Re[a]'].n, e['Im[a]'].n, e['Q_tot'].n, e['Q_c'].n, e['nu_r'].n, e['phi_0'].n, tau=0.04)
+                            mag = 20*np.log10(np.abs(Z))
+                            if flat_at_0db:
+                                mag -= y_offset
+                            ax0.plot(nu, mag, linestyle='solid', color=color, alpha=0.6, linewidth=4)
+                        except:
+                            pass
                 
             handles.append(Line2D([0], [0], label=target.label, color=color))
             
@@ -862,8 +869,7 @@ def plotPicolog(filename, OFFSET_TIME=False):
 '''
         
 '''
-def plot_target(target, axis, label=None, color=None, linestyle='solid', linewidth=1, flat_at_0db=False):
-    
+def plot_target(target, axis, color=None, linestyle='solid', linewidth=1, flat_at_0db=False):
     for e in target.entry:
         # read one sweep at a time
         channel = e['channel']
@@ -964,7 +970,7 @@ def plot_extracted_stream(filename, channel, axis, noise_type='chp', label=None,
 '''
 noise_type = 'chp' or 'cha'
 '''
-def plot_extracted_noise_spectral_density(filename, channel, sampling_frequency, axis, noise_type='chp', label=None, color=None, linestyle='solid', linewidth=1):
+def plot_extracted_noise_spectral_density(filename, channel, sampling_frequency, axis=None, noise_type='chp', label=None, color=None, linestyle='solid', linewidth=1):
     from scipy.signal import periodogram
     
     path = datapaths.output_noise / filename
@@ -976,15 +982,17 @@ def plot_extracted_noise_spectral_density(filename, channel, sampling_frequency,
     time_stream = np.load(path / 'time_stream.npy')
     ch = np.load(path / (noise_type+'_{:03d}.npy'.format(channel)) )
     
-    freqs, noise_spectral_density = periodogram(ch, fs=sampling_frequency, window="han")
+    # when scaling = "density" the function returns the power spectral density in 1/Hz
+    freqs, noise_spectral_density = periodogram(ch, fs=sampling_frequency, window="han", scaling="density")
 
-    axis.plot(freqs, noise_spectral_density, color=color, label=label, linestyle=linestyle, linewidth=linewidth)
-    axis.grid(color="gray", alpha=0.5)
-    axis.set_xlabel("Frequency [Hz]")
-    axis.set_xlim([freqs[0], freqs[-1]])
-    axis.set_xscale('log')
-    axis.set_yscale('log')
-    axis.set_ylabel("Noise spectral density [1/Hz]")
+    if axis is not None:
+        axis.plot(freqs, np.sqrt(noise_spectral_density), color=color, label=label, linestyle=linestyle, linewidth=linewidth)
+        axis.grid(color="gray", alpha=0.5)
+        axis.set_xlabel("Frequency [Hz]")
+        axis.set_xlim([freqs[1], freqs[-1]])
+        axis.set_xscale('log')
+        axis.set_yscale('log')
+        axis.set_ylabel("Noise spectral density [1/$\sqrt{Hz}$]")
     
     return freqs, noise_spectral_density
     
