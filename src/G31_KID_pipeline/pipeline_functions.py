@@ -11,7 +11,7 @@ from . import datapaths
 '''
         Function for overplotting targets and MS2034B data
 '''
-def overplotTargetSweeps(targets=None, ms2034b_data_list=None, channel_index=False, add_out_of_res_plot=False, complex_fit_above=False, flat_at_0db=True, colormap='coolwarm'):
+def overplotTargetSweeps(targets=None, ms2034b_data_list=None, channel_index=False, add_out_of_res_plot=False, complex_fit_above=False, flat_at_0db=True, colormap='coolwarm', markers=True):
     from matplotlib import pyplot as plt
     from matplotlib.lines import Line2D
     from matplotlib import cm
@@ -48,7 +48,10 @@ def overplotTargetSweeps(targets=None, ms2034b_data_list=None, channel_index=Fal
                         y_offset = y_data_chan[0]
                         y_data_chan -= y_offset
                 
-                    ax0.plot(x_data_chan, y_data_chan, color=color, linestyle='', marker='o', markersize=5)
+                    if markers:
+                        ax0.plot(x_data_chan, y_data_chan, color=color, linestyle='', marker='o', markersize=5)
+                    else:
+                        ax0.plot(x_data_chan, y_data_chan, color=color, linestyle='solid')
                     
                     # plot the channel index above the correspondend sweep
                     if channel_index:

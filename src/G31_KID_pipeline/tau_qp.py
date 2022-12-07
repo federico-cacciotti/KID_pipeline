@@ -155,12 +155,12 @@ class Event():
             
             
             # print data
-            report_fit(result)
+            report_fit(result, show_correl=False)
         except:
             print("Optimal parameters not found")
     
     
-    def plot_fit(self):
+    def plot_fit(self, save_figure=True):
         import matplotlib.pyplot as plt
         
         fig = plt.figure(figsize=(5, 5))
@@ -177,9 +177,19 @@ class Event():
         ax0.set_ylabel('Amplitude')
         plt.title(self.label)
         
+        if save_figure:
+            fig.savefig(self.label+'.png', dpi=250)
         plt.show()
         
-
+        
+    
+    def printParameters(self):
+        string = "{:.4e},{:.4e},{:.4e},{:.4e},{:.4e},{:.4e},{:.4e},{:.4e},{:.4e},{:.4e}".format(self.par['tau_rise'].value*1e6, self.par['tau_rise'].stderr*1e6, self.par['tau_fall'].value*1e6, 
+                                                                                                self.par['tau_fall'].stderr*1e6, self.par['A'].value, self.par['A'].stderr, self.par['t_offset'].value*1e6, 
+                                                                                                self.par['t_offset'].stderr*1e6, self.par['v_offset'].value, self.par['v_offset'].stderr)
+    
+        print(string)
+        
 
 def fitAverage(IQ_timestreams, bounds=[[0, 0, 0, -50], [400, 400, 100, 10]], p0=[100, 150, 10, 0], time_unit='us', voffset=False):
     from scipy.signal import correlate, correlation_lags, medfilt
