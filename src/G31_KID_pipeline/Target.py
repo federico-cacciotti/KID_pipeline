@@ -108,15 +108,14 @@ class Target():
                         params, chi2 = pf.complexS21Fit(I=I, Q=Q, freqs=freqs, res_freq=e['target_freq'], 
                                                output_path=out_path, DATAPOINTS=DATAPOINTS)
                         
-                        if params != None:
-                            e['Re[a]'] = params['Re[a]']
-                            e['Im[a]'] = params['Im[a]']
-                            e['Q_tot'] = params['Q_tot']
-                            e['Q_c'] = params['Q_c']
-                            e['Q_i'] = params['Q_i']
-                            e['nu_r'] = params['nu_r']
-                            e['phi_0'] = params['phi_0']
-                            e['reduced_chi2'] = float(chi2)
+                        e['Re[a]'] = params['Re[a]']
+                        e['Im[a]'] = params['Im[a]']
+                        e['Q_tot'] = params['Q_tot']
+                        e['Q_c'] = params['Q_c']
+                        e['Q_i'] = params['Q_i']
+                        e['nu_r'] = params['nu_r']
+                        e['phi_0'] = params['phi_0']
+                        e['reduced_chi2'] = float(chi2)
                             
                     except:
                         pass

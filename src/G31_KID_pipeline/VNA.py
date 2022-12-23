@@ -2,12 +2,13 @@ import numpy as np
 from . import datapaths
 from . import pipeline_functions as pf
 import sys
+from glob import glob
 
 '''
             VNA class
 '''
 class VNA():
-    def __init__(self, filename, temperature=None, build_dataset=False):
+    def __init__(self, filename, temperature=None, build_dataset=False, remove_baseline=True, label=None):
         '''
         Class for reading the ROACH VNA sweeps.
 
@@ -20,6 +21,12 @@ class VNA():
         build_dataset : boolean, optional
             If True the raw data from the ROACH is converted in .npy files. 
             The default is False.
+        remove_baseline : boolean, optional
+            If True the baselines from amplitude and phase data will be removed. 
+            The default is True.
+        label : string, optional
+            Label string of the VNA sweep.
+            The default is None.
 
         Returns
         -------
@@ -29,6 +36,7 @@ class VNA():
         print('Reding VNA sweep {:s}...'.format(filename))
         self.filename = filename
         self.temperature = temperature
+        self.entry = []
         
         try:
             self.bb_freqs = np.load(datapaths.vna / self.filename / 'bb_freqs.npy')
@@ -38,6 +46,22 @@ class VNA():
         
         if not (datapaths.vna_S21 / self.filename).exists() or build_dataset:
             pf.buildS21Dataset(self)
+        
+        # remove baseline
+        if remove_baseline:
+            self.removeBaseline()
+            
+        # check for extracted target and load data
+        if (datapaths.vna_S21 / self.filename / 'extracted_target').exists():
+            print("Extracted target found. Reading S21 data...")
+            entries = list((datapaths.vna_S21 / self.filename / 'extracted_target').glob('[0123456789]*'))
+            print("Found", len(entries), "entries.")
+            self.readS21Data(len(entries))
+        
+        if label == None:
+            self.label = filename
+        else:
+            self.label = label
             
             
     def removeBaseline(self, mag_filt='airp_lss', phase_filt='lowpass_cosine'):
@@ -206,6 +230,46 @@ class VNA():
         
         plt.show()
         
+    
+    # read S21 data for all the tones
+    def readS21Data(self, N_channels):
+        from uncertainties import ufloat
+        known_resonaces_not_fitted = 0
+        for i in range(N_channels):
+            try:
+                file_path = datapaths.vna_S21 / self.filename / 'extracted_target' / '{:03d}'.format(i)
+                [Rea_n, Rea_s, Ima_n, Ima_s, Q_tot_n, Q_tot_s, Q_c_n, Q_c_s, 
+                 Q_i_n, Q_i_s, nu_r_n, nu_r_s, phi_0_n, phi_0_s, tau] = np.load(file_path / "complex_parameters.npy", allow_pickle=False)
+                
+                freqs = np.load(file_path/'freqs.npy')
+                mag = np.load(file_path/'mag.npy')
+                
+                self.entry.append({'target_freq': (freqs[0]+freqs[-1])*0.5,
+                                  'depth': min(mag),
+                                  'reduced_chi2': float(np.load(file_path / "reduced_chi2.npy", allow_pickle=False)),
+                                  'Re[a]': ufloat(Rea_n, Rea_s),
+                                  'Im[a]': ufloat(Ima_n, Ima_s),
+                                  'Q_tot': ufloat(Q_tot_n, Q_tot_s),
+                                  'Q_c': ufloat(Q_c_n, Q_c_s),
+                                  'Q_i': ufloat(Q_i_n, Q_i_s),
+                                  'nu_r': ufloat(nu_r_n, nu_r_s),
+                                  'phi_0': ufloat(phi_0_n, phi_0_s)})
+            except: 
+                self.entry.append({'target_freq': (freqs[0]+freqs[-1])*0.5,
+                                  'depth': min(mag),
+                                  'reduced_chi2': None,
+                                  'Re[a]': None,
+                                  'Im[a]': None,
+                                  'Q_tot': None,
+                                  'Q_c': None,
+                                  'Q_i': None,
+                                  'nu_r': None,
+                                  'phi_0': None})
+                known_resonaces_not_fitted += 1
+    
+        if known_resonaces_not_fitted>0:
+            print("\nComplex fit parameters not available for {:d}/{:d} resonances.\n".format(known_resonaces_not_fitted, N_channels))
+    
         
         
     def findPeaks(self, xlim=[0, 700], mag_filt='airp_lss', phase_filt='lowpass_cosine', peak_width=(1.0, 150.0), peak_height=1.0, peak_prominence=(1.0, 30.0)):
@@ -266,9 +330,10 @@ class VNA():
         ax0.plot(self.freqs[peaks], mag[peaks], "x", label="Resonance")
         ax0.vlines(x=self.freqs[peaks], ymin=mag[peaks], ymax=mag[peaks]+peaks_info["prominences"], color='red', ls='--', lw=1)
         
-        xmin = (peaks_info["left_ips"]/(1+self.freqs.size)) * (self.freqs[-1]-self.freqs[0]) + self.freqs[0]
-        xmax = (peaks_info["right_ips"]/(1+self.freqs.size)) * (self.freqs[-1]-self.freqs[0]) + self.freqs[0]
-        ax0.hlines(y=-peaks_info["width_heights"], xmin=xmin, xmax=xmax, color='blue', ls='--', lw=1)
+        for left, right, height in zip(peaks_info["left_ips"],peaks_info["right_ips"], peaks_info["width_heights"]):
+            xmin = self.freqs[int(left)]
+            xmax = self.freqs[int(right)]
+            ax0.hlines(y=-height, xmin=xmin, xmax=xmax, color='blue', ls='--', lw=1)
         
         ax0.legend(loc='best')
 
@@ -310,11 +375,12 @@ class VNA():
         phase = []
         freqs = []
         res_freq = []
+        self.entry = []
         
         
         for i,(peak, left_ips, right_ips) in enumerate(zip(peaks, peaks_info["left_ips"], peaks_info["right_ips"])):
-            xmin = (left_ips/(1+self.freqs.size)) * (self.freqs[-1]-self.freqs[0]) + self.freqs[0]
-            xmax = (right_ips/(1+self.freqs.size)) * (self.freqs[-1]-self.freqs[0]) + self.freqs[0]
+            xmin = self.freqs[int(left_ips)]
+            xmax = self.freqs[int(right_ips)]
             
             width = xmax - xmin
             
@@ -328,21 +394,33 @@ class VNA():
             np.save(output_path / "I.npy", self.I[keep])
             np.save(output_path / "Q.npy", self.Q[keep])
             np.save(output_path / "freqs.npy", self.freqs[keep])
+            np.save(output_path / "mag.npy", self.mag[keep])
+            
+            dictionary = {'channel': i,
+                          'target_freq': self.freqs[peak],
+                          'depth': self.mag[peak],
+                          'Re[a]': None,
+                          'Im[a]': None,
+                          'Q_tot': None,
+                          'Q_c': None,
+                          'Q_i': None,
+                          'nu_r': None,
+                          'phi_0': None,
+                          'reduced_chi2': None}
+            
+            self.entry.append(dictionary)
             
             I.append(np.asarray(self.I[keep]))
             Q.append(np.asarray(self.Q[keep]))
             mag.append(np.asarray(self.mag[keep]))
             phase.append(np.asarray(self.phase[keep]))
             freqs.append(np.asarray(self.freqs[keep]))
-            res_freq.append(self.freqs[peak])
             
             color = cmap(np.random.rand())
             
             ax0.plot(self.freqs[keep], self.mag[keep], color=color, linewidth=1)
             ax1.plot(self.freqs[keep], self.phase[keep], color=color, linewidth=1)
             
-        
-        output = {"I": I, "Q": Q, "mag": mag, "phase":phase, "freqs": freqs, "res_freq": res_freq}
         
         ax0.grid(linestyle='-', alpha=0.5)
         ax0.set_xlim([self.freqs[0], self.freqs[-1]])
@@ -355,40 +433,51 @@ class VNA():
         ax1.set_xlabel('Frequency [MHz]')
         
         plt.show()
-        
-        return output
     
     
-    def fitS21(self, extracted_target, channel):
+    def fitS21(self, channel, DATAPOINTS=20):
         print("")
         from tqdm import tqdm
         
-        I = extracted_target['I']
-        Q = extracted_target['Q']
-        freqs = extracted_target['freqs']
-        res_freq = extracted_target['res_freq']
-        
         if channel == 'all':
-            pbar = tqdm(res_freq, position=0, leave=True)
-            for i,e in enumerate(pbar):
+            pbar = tqdm(self.entry, position=0, leave=True)
+            for e in pbar:
                 pbar.set_description("Complex fit... ")
-                out_path = datapaths.vna_S21 / self.filename / 'extracted_target' /  "{:03d}".format(i)
-                if not out_path.exists():
-                    out_path.mkdir(parents=True)
-                    
+                out_path = datapaths.vna_S21 / self.filename / 'extracted_target' /  "{:03d}".format(e['channel'])
                 try:
-                    params, chi2 = pf.complexS21Fit(I=I[i], Q=Q[i], freqs=freqs[i], res_freq=res_freq[i], 
-                                           output_path=out_path, DATAPOINTS=20)
+                    I = np.load(out_path / 'I.npy')
+                    Q = np.load(out_path / 'Q.npy')
+                    freqs = np.load(out_path / 'freqs.npy')
+                    params, chi2 = pf.complexS21Fit(I=I, Q=Q, freqs=freqs, res_freq=e['target_freq'], 
+                                           output_path=out_path, DATAPOINTS=DATAPOINTS)
+                    
+                    e['Re[a]'] = params['Re[a]']
+                    e['Im[a]'] = params['Im[a]']
+                    e['Q_tot'] = params['Q_tot']
+                    e['Q_c'] = params['Q_c']
+                    e['Q_i'] = params['Q_i']
+                    e['nu_r'] = params['nu_r']
+                    e['phi_0'] = params['phi_0']
+                    e['reduced_chi2'] = float(chi2)
                 except:
                     pass
         else:
             out_path = datapaths.vna_S21 / self.filename / 'extracted_target' /  "{:03d}".format(channel)
-            if not out_path.exists():
-                out_path.mkdir(parents=True)
-            
             try:
-                params, chi2 = pf.complexS21Fit(I=I[channel], Q=Q[channel], freqs=freqs[channel], res_freq=res_freq[channel], 
-                              output_path=out_path, DATAPOINTS=20, verbose=True)
+                I = np.load(out_path / 'I.npy')
+                Q = np.load(out_path / 'Q.npy')
+                freqs = np.load(out_path / 'freqs.npy')
+                params, chi2 = pf.complexS21Fit(I=I, Q=Q, freqs=freqs, res_freq=self.eantry[channel]['target_freq'], 
+                              output_path=out_path, DATAPOINTS=DATAPOINTS, verbose=True)
+                
+                self.entry[channel]['Re[a]'] = params['Re[a]']
+                self.entry[channel]['Im[a]'] = params['Im[a]']
+                self.entry[channel]['Q_tot'] = params['Q_tot']
+                self.entry[channel]['Q_c'] = params['Q_c']
+                self.entry[channel]['Q_i'] = params['Q_i']
+                self.entry[channel]['nu_r'] = params['nu_r']
+                self.entry[channel]['phi_0'] = params['phi_0']
+                self.entry[channel]['reduced_chi2'] = float(chi2)
             except:
                 print("Not able to perform a complex fit.")
                 return
@@ -398,3 +487,6 @@ class VNA():
         extracted_target_path = datapaths.vna_S21 / self.filename / 'extracted_target' / '{:03d}'.format(channel)
         
         pf.complexS21Plot(extracted_target_path)
+        
+        
+        
