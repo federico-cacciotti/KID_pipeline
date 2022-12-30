@@ -471,7 +471,7 @@ def complexS21Fit(I, Q, freqs, res_freq, output_path, DATAPOINTS=100, verbose=Fa
     if verbose:
         print("\nFit S21 complex function for {:s}...".format(output_path.as_posix()))
     
-    A = np.sqrt(I**2 + Q**2)
+    A = np.sqrt(I**2.0 + Q**2.0)
     phase = np.arctan2(Q, I)
     
     ARG_RESFREQ = np.argmin(A)
@@ -617,8 +617,24 @@ def complexS21Fit(I, Q, freqs, res_freq, output_path, DATAPOINTS=100, verbose=Fa
     z_err = IErr[ARG_MIN:ARG_MAX]+1j*QErr[ARG_MIN:ARG_MAX]
     freqs = freqs[ARG_MIN:ARG_MAX]
     
-    
-    out = minimize(complexResiduals, params, args=(freqs, z_data, z_err), method='leastsq')
+    # try a leastsquare fit otherwise an MCMC
+    try:
+        out = minimize(complexResiduals, params, args=(freqs, z_data, z_err), method='leastsq')
+        Rea = ufloat(out.params['Rea'].value, out.params['Rea'].stderr)
+        Ima = ufloat(out.params['Ima'].value, out.params['Ima'].stderr)
+        Q_tot = ufloat(out.params['Q_tot'].value, out.params['Q_tot'].stderr)
+        Q_c = ufloat(out.params['Q_c'].value, out.params['Q_c'].stderr)
+        nu_r = ufloat(out.params['nu_r'].value, out.params['nu_r'].stderr)
+        phi_0 = ufloat(out.params['phi_0'].value, out.params['phi_0'].stderr)
+    except:
+        emcee_kws = dict(steps=2500, burn=500, nwalkers=100, progress=False)
+        out = minimize(complexResiduals, params, args=(freqs, z_data, z_err), method='emcee', **emcee_kws)
+        Rea = ufloat(out.params['Rea'].value, out.params['Rea'].stderr)
+        Ima = ufloat(out.params['Ima'].value, out.params['Ima'].stderr)
+        Q_tot = ufloat(out.params['Q_tot'].value, out.params['Q_tot'].stderr)
+        Q_c = ufloat(out.params['Q_c'].value, out.params['Q_c'].stderr)
+        nu_r = ufloat(out.params['nu_r'].value, out.params['nu_r'].stderr)
+        phi_0 = ufloat(out.params['phi_0'].value, out.params['phi_0'].stderr)
     
     if verbose:
         print("\n\tcomplex fit results")
@@ -626,16 +642,6 @@ def complexS21Fit(I, Q, freqs, res_freq, output_path, DATAPOINTS=100, verbose=Fa
     file = open(output_path / "log.txt","a")
     file.write(fit_report(out))
     file.close()
-    
-    if out.message != 'Fit succeeded.':
-        return None
-    
-    Rea = ufloat(out.params['Rea'].value, out.params['Rea'].stderr)
-    Ima = ufloat(out.params['Ima'].value, out.params['Ima'].stderr)
-    Q_tot = ufloat(out.params['Q_tot'].value, out.params['Q_tot'].stderr)
-    Q_c = ufloat(out.params['Q_c'].value, out.params['Q_c'].stderr)
-    nu_r = ufloat(out.params['nu_r'].value, out.params['nu_r'].stderr)
-    phi_0 = ufloat(out.params['phi_0'].value, out.params['phi_0'].stderr)
 
     # compute the Q_i value
     Q_i = Q_c*Q_tot/(Q_c-Q_tot)
@@ -672,7 +678,10 @@ def complexS21Plot(complex_fit_data_path):
     
     I = np.load(complex_fit_data_path / "I.npy")
     Q = np.load(complex_fit_data_path / "Q.npy")
-    mag = np.load(complex_fit_data_path / "mag.npy")
+    mag = np.sqrt(Q*Q + I*I)
+    mag = 20*np.log10(mag)
+    
+    #mag = np.load(complex_fit_data_path / "mag.npy")
     #ph = np.load(output_path / "phi.npy")
     freqs = np.load(complex_fit_data_path / "freqs.npy")
         
@@ -801,7 +810,7 @@ def complexS21Plot(complex_fit_data_path):
     #amplitudePlot.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
     #amplitudePlot.legend(loc='best')
     amplitudePlot.set_xlabel('Frequency [MHz]')
-    amplitudePlot.set_ylabel(r'Amplitude [dBm]')
+    amplitudePlot.set_ylabel(r'Amplitude [dB]')
     amplitudePlot.grid(alpha=0.5)
     amplitudePlot.yaxis.set_ticks_position('both')
     amplitudePlot.xaxis.set_ticks_position('both')

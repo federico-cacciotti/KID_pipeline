@@ -126,22 +126,19 @@ class Target():
             freqs = np.load(path / "{:03d}".format(channel) / "freqs.npy", allow_pickle=True)
             out_path = datapaths.target_S21 / self.filename / "{:03d}".format(channel)
             
-            try:
-                params, chi2 = pf.complexS21Fit(I=I, Q=Q, freqs=freqs, res_freq=self.entry[channel]['target_freq'], 
-                              output_path=out_path, DATAPOINTS=DATAPOINTS, verbose=True)
+            params, chi2 = pf.complexS21Fit(I=I, Q=Q, freqs=freqs, res_freq=self.entry[channel]['target_freq'], 
+                          output_path=out_path, DATAPOINTS=DATAPOINTS, verbose=True)
                 
-                self.entry[channel]['Re[a]'] = params['Re[a]']
-                self.entry[channel]['Im[a]'] = params['Im[a]']
-                self.entry[channel]['Q_tot'] = params['Q_tot']
-                self.entry[channel]['Q_c'] = params['Q_c']
-                self.entry[channel]['Q_i'] = params['Q_i']
-                self.entry[channel]['nu_r'] = params['nu_r']
-                self.entry[channel]['phi_0'] = params['phi_0']
-                self.entry[channel]['reduced_chi2'] = float(chi2)
+            self.entry[channel]['Re[a]'] = params['Re[a]']
+            self.entry[channel]['Im[a]'] = params['Im[a]']
+            self.entry[channel]['Q_tot'] = params['Q_tot']
+            self.entry[channel]['Q_c'] = params['Q_c']
+            self.entry[channel]['Q_i'] = params['Q_i']
+            self.entry[channel]['nu_r'] = params['nu_r']
+            self.entry[channel]['phi_0'] = params['phi_0']
+            self.entry[channel]['reduced_chi2'] = float(chi2)
             
-            except:
-                print("Not able to perform a complex fit.")
-                return
+        return
         
     # read S21 data for all the tones
     def readS21Data(self):

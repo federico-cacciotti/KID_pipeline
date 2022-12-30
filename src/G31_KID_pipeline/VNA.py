@@ -33,6 +33,7 @@ class VNA():
         None.
 
         '''
+        print('++++++++++++++++++++++++++++++++++++++++++++++++')
         print('Reding VNA sweep {:s}...'.format(filename))
         self.filename = filename
         self.temperature = temperature
@@ -268,7 +269,7 @@ class VNA():
                 known_resonaces_not_fitted += 1
     
         if known_resonaces_not_fitted>0:
-            print("\nComplex fit parameters not available for {:d}/{:d} resonances.\n".format(known_resonaces_not_fitted, N_channels))
+            print("Complex fit parameters not available for {:d}/{:d} resonances.".format(known_resonaces_not_fitted, N_channels))
     
         
         
@@ -308,7 +309,7 @@ class VNA():
             info on peaks.
 
         '''
-        print('Peak finding...')
+        print(self.filename+': peak finding...')
         
         mag, phase = self.removeBaseline(mag_filt, phase_filt)
         
@@ -374,7 +375,6 @@ class VNA():
         mag = []
         phase = []
         freqs = []
-        res_freq = []
         self.entry = []
         
         
@@ -435,14 +435,14 @@ class VNA():
         plt.show()
     
     
-    def fitS21(self, channel, DATAPOINTS=20):
+    def fitS21(self, channel, DATAPOINTS=50):
         print("")
         from tqdm import tqdm
         
         if channel == 'all':
             pbar = tqdm(self.entry, position=0, leave=True)
             for e in pbar:
-                pbar.set_description("Complex fit... ")
+                pbar.set_description(self.filename+" complex fit... ")
                 out_path = datapaths.vna_S21 / self.filename / 'extracted_target' /  "{:03d}".format(e['channel'])
                 try:
                     I = np.load(out_path / 'I.npy')
@@ -463,24 +463,22 @@ class VNA():
                     pass
         else:
             out_path = datapaths.vna_S21 / self.filename / 'extracted_target' /  "{:03d}".format(channel)
-            try:
-                I = np.load(out_path / 'I.npy')
-                Q = np.load(out_path / 'Q.npy')
-                freqs = np.load(out_path / 'freqs.npy')
-                params, chi2 = pf.complexS21Fit(I=I, Q=Q, freqs=freqs, res_freq=self.eantry[channel]['target_freq'], 
-                              output_path=out_path, DATAPOINTS=DATAPOINTS, verbose=True)
+            I = np.load(out_path / 'I.npy')
+            Q = np.load(out_path / 'Q.npy')
+            freqs = np.load(out_path / 'freqs.npy')
+            params, chi2 = pf.complexS21Fit(I=I, Q=Q, freqs=freqs, res_freq=self.entry[channel]['target_freq'], 
+                          output_path=out_path, DATAPOINTS=DATAPOINTS, verbose=True)
                 
-                self.entry[channel]['Re[a]'] = params['Re[a]']
-                self.entry[channel]['Im[a]'] = params['Im[a]']
-                self.entry[channel]['Q_tot'] = params['Q_tot']
-                self.entry[channel]['Q_c'] = params['Q_c']
-                self.entry[channel]['Q_i'] = params['Q_i']
-                self.entry[channel]['nu_r'] = params['nu_r']
-                self.entry[channel]['phi_0'] = params['phi_0']
-                self.entry[channel]['reduced_chi2'] = float(chi2)
-            except:
-                print("Not able to perform a complex fit.")
-                return
+            self.entry[channel]['Re[a]'] = params['Re[a]']
+            self.entry[channel]['Im[a]'] = params['Im[a]']
+            self.entry[channel]['Q_tot'] = params['Q_tot']
+            self.entry[channel]['Q_c'] = params['Q_c']
+            self.entry[channel]['Q_i'] = params['Q_i']
+            self.entry[channel]['nu_r'] = params['nu_r']
+            self.entry[channel]['phi_0'] = params['phi_0']
+            self.entry[channel]['reduced_chi2'] = float(chi2)
+            
+        return
             
         
     def plotS21(self, channel):
