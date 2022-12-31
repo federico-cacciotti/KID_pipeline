@@ -1,6 +1,6 @@
 import numpy as np
 from . import datapaths
-from . import pipeline_functions as pf
+from . import functions as fc
 import sys
 
 '''
@@ -31,7 +31,7 @@ class Target():
         
         # building S21 dataset
         if not (datapaths.target_S21 / self.filename).exists() or build_dataset:
-            pf.buildS21Dataset(self)
+            fc.buildS21Dataset(self)
         
         # building data dictonaries
         self.entry = []
@@ -105,7 +105,7 @@ class Target():
                     out_path = datapaths.target_S21 / self.filename / "{:03d}".format(c)
                     
                     try:
-                        params, chi2 = pf.complexS21Fit(I=I, Q=Q, freqs=freqs, res_freq=e['target_freq'], 
+                        params, chi2 = fc.complexS21Fit(I=I, Q=Q, freqs=freqs, res_freq=e['target_freq'], 
                                                output_path=out_path, DATAPOINTS=DATAPOINTS)
                         
                         e['Re[a]'] = params['Re[a]']
@@ -126,7 +126,7 @@ class Target():
             freqs = np.load(path / "{:03d}".format(channel) / "freqs.npy", allow_pickle=True)
             out_path = datapaths.target_S21 / self.filename / "{:03d}".format(channel)
             
-            params, chi2 = pf.complexS21Fit(I=I, Q=Q, freqs=freqs, res_freq=self.entry[channel]['target_freq'], 
+            params, chi2 = fc.complexS21Fit(I=I, Q=Q, freqs=freqs, res_freq=self.entry[channel]['target_freq'], 
                           output_path=out_path, DATAPOINTS=DATAPOINTS, verbose=True)
                 
             self.entry[channel]['Re[a]'] = params['Re[a]']
@@ -319,6 +319,6 @@ class Target():
     def plotS21(self, channel):
         target_path = datapaths.target_S21 / self.filename / '{:03d}'.format(channel)
         
-        pf.complexS21Plot(target_path)
+        fc.complexS21Plot(target_path)
         
         

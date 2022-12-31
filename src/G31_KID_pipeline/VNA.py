@@ -1,6 +1,6 @@
 import numpy as np
 from . import datapaths
-from . import pipeline_functions as pf
+from . import functions as fc
 import sys
 from glob import glob
 
@@ -46,7 +46,7 @@ class VNA():
             sys.exit()
         
         if not (datapaths.vna_S21 / self.filename).exists() or build_dataset:
-            pf.buildS21Dataset(self)
+            fc.buildS21Dataset(self)
         
         # remove baseline
         if remove_baseline:
@@ -161,15 +161,15 @@ class VNA():
         if mag_filt == 'lowpass_cosine':
             sweep_step = 1.25 # kHz
             smoothing_scale = 2500.0 # kHz
-            filtered = pf.lowpass_cosine(mag, sweep_step, 1.0/smoothing_scale, 0.1 * (1.0/smoothing_scale))
+            filtered = fc.lowpass_cosine(mag, sweep_step, 1.0/smoothing_scale, 0.1 * (1.0/smoothing_scale))
             mag -= filtered    
             
         if mag_filt == 'a_lss':
-            baseline = pf.asymmetric_least_squares_smoothing(data=mag, lam=1e6, p=8e-4, N_iter=5)
+            baseline = fc.asymmetric_least_squares_smoothing(data=mag, lam=1e6, p=8e-4, N_iter=5)
             mag -= baseline
             
         if mag_filt == 'airp_lss':
-            baseline = pf.adaptive_iteratively_reweighted_penalized_least_squares_smoothing(data=mag, lam=1e6, N_iter=5)
+            baseline = fc.adaptive_iteratively_reweighted_penalized_least_squares_smoothing(data=mag, lam=1e6, N_iter=5)
             mag -= baseline
         
         
@@ -177,7 +177,7 @@ class VNA():
         if phase_filt == 'lowpass_cosine':
             sweep_step = 1.25 # kHz
             smoothing_scale = 2500.0 # kHz
-            filtered = pf.lowpass_cosine(phase, sweep_step, 1./smoothing_scale, 0.1 * (1.0/smoothing_scale))
+            filtered = fc.lowpass_cosine(phase, sweep_step, 1./smoothing_scale, 0.1 * (1.0/smoothing_scale))
             phase -= filtered
     
         return mag, phase
@@ -448,7 +448,7 @@ class VNA():
                     I = np.load(out_path / 'I.npy')
                     Q = np.load(out_path / 'Q.npy')
                     freqs = np.load(out_path / 'freqs.npy')
-                    params, chi2 = pf.complexS21Fit(I=I, Q=Q, freqs=freqs, res_freq=e['target_freq'], 
+                    params, chi2 = fc.complexS21Fit(I=I, Q=Q, freqs=freqs, res_freq=e['target_freq'], 
                                            output_path=out_path, DATAPOINTS=DATAPOINTS)
                     
                     e['Re[a]'] = params['Re[a]']
@@ -466,7 +466,7 @@ class VNA():
             I = np.load(out_path / 'I.npy')
             Q = np.load(out_path / 'Q.npy')
             freqs = np.load(out_path / 'freqs.npy')
-            params, chi2 = pf.complexS21Fit(I=I, Q=Q, freqs=freqs, res_freq=self.entry[channel]['target_freq'], 
+            params, chi2 = fc.complexS21Fit(I=I, Q=Q, freqs=freqs, res_freq=self.entry[channel]['target_freq'], 
                           output_path=out_path, DATAPOINTS=DATAPOINTS, verbose=True)
                 
             self.entry[channel]['Re[a]'] = params['Re[a]']
@@ -484,7 +484,7 @@ class VNA():
     def plotS21(self, channel):
         extracted_target_path = datapaths.vna_S21 / self.filename / 'extracted_target' / '{:03d}'.format(channel)
         
-        pf.complexS21Plot(extracted_target_path)
+        fc.complexS21Plot(extracted_target_path)
         
         
         

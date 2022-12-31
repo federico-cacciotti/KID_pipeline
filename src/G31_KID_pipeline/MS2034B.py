@@ -1,6 +1,6 @@
 import numpy as np
 from . import datapaths
-from . import pipeline_functions as pf
+from . import functions as fc
 
 '''
             readMS2034B function
@@ -44,7 +44,7 @@ class MS2034B():
         np.save(out_path/"mag.npy", arr=amp)
         
         try:
-            params, chi2 = pf.complexS21Fit(I=I, Q=Q, freqs=self.freqs, res_freq=res_freq, 
+            params, chi2 = fc.complexS21Fit(I=I, Q=Q, freqs=self.freqs, res_freq=res_freq, 
                                    output_path=out_path, verbose=True, DATAPOINTS=3500)
         
             if params != None:
@@ -66,7 +66,7 @@ class MS2034B():
             return
         
         target_path = datapaths.anritsuMS2034B
-        pf.complexS21Plot(target_path)
+        fc.complexS21Plot(target_path)
     
     def plotVNA(self):
         from matplotlib import pyplot as plt
