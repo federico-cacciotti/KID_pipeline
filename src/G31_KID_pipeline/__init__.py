@@ -1,5 +1,6 @@
 from . import datapaths
-from . import pipeline_functions as functions
+from . import functions
+from . import google_spreadsheet
 from .Target import *
 from .VNA import *
 from .MS2034B import *

@@ -918,14 +918,14 @@ def electrical_phase_responsivity_linear_fit(nu_r, base_nu_r, T, T_c, N_0, V_abs
     T = np.asarray(T)
     
     # function used for the fit procedure
-    def linear_function(x, m, q):
-        return x*m + q
+    def linear_function(x, slope, intercept):
+        return x*slope + intercept
     
     def fcn2min(params, x, data, errs=None):
-        m = params['m']
-        q = params['q']
+        slope = params['slope']
+        intercept = params['intercept']
         
-        model = linear_function(x, m, q)
+        model = linear_function(x, slope, intercept)
         
         if errs is None:
             return data-model
@@ -937,8 +937,8 @@ def electrical_phase_responsivity_linear_fit(nu_r, base_nu_r, T, T_c, N_0, V_abs
     
     # linear fit
     params = Parameters()
-    params.add('m', value=(min(delta_x).n-max(delta_x).n)/(max(N_qp)-min(N_qp)), min=0, max=-np.inf)
-    params.add('q', value=0.0, min=-1, max=1)
+    params.add('slope', value=(min(delta_x).n-max(delta_x).n)/(max(N_qp)-min(N_qp)), min=0, max=-np.inf)
+    params.add('intercept', value=0.0, min=-1, max=1)
     
     try:
         result = Minimizer(fcn2min, params, fcn_args=(N_qp, [d.n for d in delta_x], [d.s for d in delta_x])).minimize(method='least_squares')
@@ -949,7 +949,7 @@ def electrical_phase_responsivity_linear_fit(nu_r, base_nu_r, T, T_c, N_0, V_abs
             axis.set_ylabel("Relative resonant frequency shift")
             
             axis.errorbar(N_qp, [d.n for d in delta_x], yerr=[d.s for d in delta_x], color=color, linestyle='', fmt='o', capsize=2, markersize=3)
-            axis.plot(N_qp, linear_function(N_qp, result.params['m'].value, result.params['q'].value), color=color, label=label)
+            axis.plot(N_qp, linear_function(N_qp, result.params['slope'].value, result.params['intercept'].value), color=color, label=label)
             
             axis.grid(color='gray', alpha=0.4)
             
@@ -959,6 +959,33 @@ def electrical_phase_responsivity_linear_fit(nu_r, base_nu_r, T, T_c, N_0, V_abs
         return
         
     return result.params
+
+
+
+def electrical_phase_responsivity(slope, T_c, Q_tot, tau_qp, eta_qp):
+    """
+    This functions returns the electrical phase responsivity
+
+    Parameters
+    ----------
+    slope : (u)float
+        The slope of the delta nu_r / nu_r0 vs N_qp linear trend.
+    T_c : (u)float
+        Critical temperature in Kelvin.
+    Q_tot : (u)float
+        Total quality factor.
+    tau_qp : (u)float
+        Quasiparticle recombination time in seconds.
+    eta_qp : float
+        Pair breaking efficiency.
+
+    Returns
+    -------
+    (u)float
+        The electrical phase responsivity in rad/Watt.
+
+    """
+    return -slope*4.0*Q_tot*eta_qp*tau_qp/Delta(T_c) # rad/W
 
 '''
 noise_type = 'chp' or 'cha'
@@ -991,7 +1018,7 @@ def plot_extracted_noise_spectral_density(filename, channel, sampling_frequency,
         label = noise_type+'_{:03d}'.format(channel)
 
     # open time streams
-    time_stream = np.load(path / 'time_stream.npy')
+    #time_stream = np.load(path / 'time_stream.npy')
     ch = np.load(path / (noise_type+'_{:03d}.npy'.format(channel)) )
     
     # when scaling = "density" the function returns the power spectral density in 1/Hz
