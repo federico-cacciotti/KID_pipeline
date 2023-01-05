@@ -26,15 +26,35 @@ class MS2034B():
         self.freqs *= 1e3 # GHz to MHz
     
     
-    def fitS21(self):
-        if self.mode != 'real_imag':
-            print('S21 fit only available for "real_imag" .s2p file format.')
-            return
+    def S21mag_db(self):
+        if self.mode == 'log_mag_phase':
+            return self.S12DB
+        if self.mode == 'real_imag':
+            return 20.0*np.log10(np.sqrt(self.ReS21**2.0+self.ImS21**2.0))
         
-        I = self.ReS21
-        Q = self.ImS21
+    def S21mag(self):
+        if self.mode == 'log_mag_phase':
+            return 10.0**(self.S12DB/20.0)
+        if self.mode == 'real_imag':
+            return np.log10(np.sqrt(self.ReS21**2.0+self.ImS21**2.0))
+                            
+    def S21_I(self):
+        if self.mode == 'log_mag_phase':
+            return self.S21mag()*np.cos(self.S21A)
+        if self.mode == 'real_imag':
+            return self.ReS21
+    
+    def S21_Q(self):
+        if self.mode == 'log_mag_phase':
+            return self.S21mag()*np.sin(self.S21A)
+        if self.mode == 'real_imag':
+            return self.ImS21
+    
+    def fitS21(self, DATAPOINTS=3500):
+        I = self.S21_I()
+        Q = self.S21_Q()
         
-        amp = np.sqrt(I*I + Q*Q)
+        amp = self.S21mag_db()
         res_freq = self.freqs[np.argmin(amp)]
         out_path = datapaths.anritsuMS2034B
         
