@@ -26,7 +26,7 @@ class MS2034B():
         self.freqs *= 1e3 # GHz to MHz
     
     
-    def S21mag_db(self):
+    def S21mag_dB(self):
         if self.mode == 'log_mag_phase':
             return self.S12DB
         if self.mode == 'real_imag':
@@ -54,7 +54,7 @@ class MS2034B():
         I = self.S21_I()
         Q = self.S21_Q()
         
-        amp = self.S21mag_db()
+        amp = self.S21mag_dB()
         res_freq = self.freqs[np.argmin(amp)]
         out_path = datapaths.anritsuMS2034B
         

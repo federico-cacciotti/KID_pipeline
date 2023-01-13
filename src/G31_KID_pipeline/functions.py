@@ -137,13 +137,16 @@ def overplotTargetCircles(targets=None, ms2034b_data_list=None, complex_fit_abov
                     ax0.plot(I, Q, color=color, linestyle='', marker='o', markersize=5)
                 
                     if complex_fit_above:
-                        nu_linear = np.linspace(x_data_chan[0], x_data_chan[-1], num=200) # linear sample
-                        nu_peack = np.random.normal(e['nu_r'].n, 0.001, 1000) # peak sample
-                        nu = np.concatenate([nu_linear, nu_peack])
-                        nu = np.sort(nu)
-                        Z = S_21(nu, e['Re[a]'].n, e['Im[a]'].n, e['Q_tot'].n, e['Q_c'].n, e['nu_r'].n, e['phi_0'].n, tau=0.04)
-                        
-                        ax0.plot(np.real(Z), np.imag(Z), linestyle='solid', color=color, alpha=0.6, linewidth=4)
+                        try:
+                            nu_linear = np.linspace(x_data_chan[0], x_data_chan[-1], num=200) # linear sample
+                            nu_peack = np.random.normal(e['nu_r'].n, 0.001, 1000) # peak sample
+                            nu = np.concatenate([nu_linear, nu_peack])
+                            nu = np.sort(nu)
+                            Z = S_21(nu, e['Re[a]'].n, e['Im[a]'].n, e['Q_tot'].n, e['Q_c'].n, e['nu_r'].n, e['phi_0'].n, tau=0.04)
+                            
+                            ax0.plot(np.real(Z), np.imag(Z), linestyle='solid', color=color, alpha=0.6, linewidth=4)
+                        except:
+                            pass
                 
             handles.append(Line2D([0], [0], label=target.label, color=color))
             
