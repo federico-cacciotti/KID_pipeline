@@ -1,7 +1,7 @@
 import numpy as np
 from pathlib import Path
 
-paths_cosmic_rays = Path("/Users/federicocacciotti/Documents/PhD/dati/cosmic_rays")
+#paths_cosmic_rays = Path("/Users/federicocacciotti/Documents/PhD/dati/cosmic_rays")
 
 
 '''
@@ -12,7 +12,7 @@ paths_cosmic_rays = Path("/Users/federicocacciotti/Documents/PhD/dati/cosmic_ray
 def impulse_response(t, tau_rise, tau_fall, A, t_offset, v_offset):
     y = v_offset + A*(np.exp(-(t-t_offset)/tau_fall) - np.exp(-(t-t_offset)/tau_rise))
     y = [v_offset if y_<=v_offset else y_ for y_ in y]
-    return y
+    return np.array(y)
 
 def double_exponential(t, tau_rise, tau_fall, tau_therm, A1, A2, t_offset):
     y = A1*(np.exp(-(t-t_offset)/tau_fall) - np.exp(-(t-t_offset)/tau_rise)) + A2*np.exp(-(t-t_offset)/tau_therm)
@@ -25,11 +25,14 @@ def exponential_decay(t, A, tau, t_offset):
 
 class Event():
     
-    def __init__(self, filename, CH1=None, CH2=None, CH3=None, CH4=None, label='Event'):
+    def __init__(self, filename, CH1=None, CH2=None, CH3=None, CH4=None, label='Event', n_sigma=2.0):
         
         self.label = label
         self.time = {'label': 'TIME', 'data': []}
         self.channels = {}
+        self.filename = Path(filename)
+        self.n_sigma = n_sigma
+        print("Reading "+self.filename.stem+"...")
         
         for i,CHi in enumerate([CH1, CH2, CH3, CH4]):
             if CHi != None:
@@ -42,9 +45,10 @@ class Event():
         
         # read data from .csv file
         n_channels = len(self.channels)
-        data = np.loadtxt(paths_cosmic_rays/filename, dtype=float, delimiter=',', skiprows=21, unpack=True, usecols=range(n_channels+1))
-        self.vertical_units = str(np.loadtxt(paths_cosmic_rays/filename, dtype=str, delimiter=',', skiprows=12, usecols=1, max_rows=1))
-        self.horizontal_units = str(np.loadtxt(paths_cosmic_rays/filename, dtype=str, delimiter=',', skiprows=5, usecols=1, max_rows=1))
+        data = np.loadtxt(self.filename, dtype=float, delimiter=',', skiprows=21, unpack=True, usecols=range(n_channels+1))
+        self.vertical_units = str(np.loadtxt(self.filename, dtype=str, delimiter=',', skiprows=12, usecols=1, max_rows=1))
+        self.horizontal_units = str(np.loadtxt(self.filename, dtype=str, delimiter=',', skiprows=5, usecols=1, max_rows=1))
+        
         
         self.time['data'] = data[0]
         self.time['data'] -= self.time['data'][0]   # remove time offset
@@ -56,6 +60,29 @@ class Event():
                 j += 1
             except:
                 pass
+        
+        # add a constant >> Q and I
+        C = 1000.0
+        if np.abs(self.channels[self.I_channel]['data'].min()) > np.abs(self.channels[self.I_channel]['data'].max()):
+            I = self.channels[self.I_channel]['data'] - C
+        else:
+            I = self.channels[self.I_channel]['data'] + C
+        if np.abs(self.channels[self.Q_channel]['data'].min()) > np.abs(self.channels[self.Q_channel]['data'].max()):
+            Q = self.channels[self.Q_channel]['data'] - C
+        else:
+            Q = self.channels[self.Q_channel]['data'] + C
+        
+        self.A = np.sqrt(I*I + Q*Q) - np.sqrt(2.0*C**2.0)
+            
+        # check if fit parameters already exists
+        self.fit_result = None
+        self.par = None
+        try:
+            self.fit_result = np.load(self.filename.parent / (self.filename.stem+'.npy'), allow_pickle=True).tolist()
+            self.par = self.fit_result.params
+            print("Found fit parameters!")
+        except FileNotFoundError:
+            print("Fit parameters do not already exist.")
             
         
     def plot(self):
@@ -64,7 +91,7 @@ class Event():
         colors = ['gray', 'red', 'blue', 'green']
         
         fig = plt.figure(figsize=(5, 5))
-        ax0 = plt.subplot(111)
+        ax0 = fig.gca()
         
         for CHi, color in zip(self.channels, colors):
             ax0.plot(self.time['data'], self.channels[str(CHi)]['data'], linestyle='solid', label=self.channels[str(CHi)]['label'], color=color)
@@ -90,41 +117,47 @@ class Event():
         
         plt.show()
         
+    def compute_errorbars(self):
+        bin_heights, bin_position = np.histogram(self.A, 200)
+        bin_max_height = np.max(bin_heights)
+        bin_max_argument = np.argmax(bin_heights)
+        bin_max_position = bin_position[bin_max_argument]
+        
+        from lmfit import Minimizer, Parameters
+        def gaussian(x, params):
+            return params['A']*np.exp(- 0.5 * (x-params['mu'])**2.0/params['sigma']**2.0)
+        def fcn2min(params, x, data):
+            return data-gaussian(x, params)
+        
+        params = Parameters()
+        params.add('A', value=bin_max_height, min=bin_max_height*0.7, max=bin_max_height*1.3)
+        params.add('mu', value=bin_max_position, min=bin_max_position*0.9, max=bin_max_position*1.1)
+        params.add('sigma', value=1.0e-3, min=0.0, max=1.0)
+        
+        try:
+            keep = np.logical_and(bin_position[0:-1] <= self.n_sigma*(bin_max_position-bin_position[0]), bin_heights != 0.0)
+            result = Minimizer(fcn2min, params, fcn_args=(bin_position[0:-1][keep], bin_heights[keep])).minimize()
+        except TypeError:
+            keep = np.logical_and(bin_position[0:-1] <= 4.0*(bin_max_position-bin_position[0]), bin_heights != 0.0)
+            result = Minimizer(fcn2min, params, fcn_args=(bin_position[0:-1][keep], bin_heights[keep])).minimize()
+         
+        return bin_heights, bin_position, result
+        
     
-    def fit(self):
-        '''
-        This function computes the magnitude of the modulated IQ signal and 
-        performs the best fit with a double exponential function
-
-        Returns
-        -------
-        list
-            DESCRIPTION.
-
-        '''
-        from scipy.signal import correlate, correlation_lags, medfilt
+    def fit(self, force_fit=False):
+        # check if fit parameters already exist
+        if not np.any(self.par == None) and force_fit == False:
+            print("Fit parameters already exist. Try to force the fitting routine by passing 'force_fit=True' to the fit functions.")
+            return 0
+        
         from lmfit import Minimizer, Parameters, report_fit
-        from uncertainties import ufloat
-        
-        
-        self.A = np.sqrt(self.channels[self.I_channel]['data']**2. + self.channels[self.Q_channel]['data']**2.)
-        
-        A_filt = medfilt(self.A, kernel_size=51)
-            
-        # normalization
-        self.A /= max(A_filt)
         
         # fit
-        # errorbars are the std dev of the initial plateau
-        keep = np.array(self.A) >= 0.15
-        std_dev = np.std(self.A[keep])
-        v_offset = np.average(self.A[keep])
+        # errorbars are the std dev of the lower part of the stream
+        bin_heights, bin_position, result = self.compute_errorbars(self.n_sigma)
         
-        keep = np.array(self.A) >= 0.0 # all the stream
-        #keep = np.array(self.A) >= 0.15*max(self.A)
-        #keep = np.array([True if i%10==0 else False for i,k in enumerate(keep)])
-        
-        errors = np.ones(len(keep))*std_dev
+        keep = np.array(self.A) >= -10.0 # all the stream
+        errors = np.ones(len(keep))*result.params['sigma'].value
         
         def fcn2min(params, x, data, errs=None):
             model = impulse_response(x, params['tau_rise'].value, params['tau_fall'].value, params['A'].value, params['t_offset'].value, params['v_offset'].value)
@@ -135,35 +168,37 @@ class Event():
             return (model-data)/errs
         
         # parameters initial guess
-        mask = self.A >= 0.5#0.36
+        mask = self.A >= 0.6*self.A.max()
         t_offset = self.time['data'][mask][0]
         t_fall_offset = self.time['data'][mask][-1]
         
-        mask = self.A >= 0.95
+        mask = self.A >= 0.95*self.A.max()
         time_at_max = 0.5*(self.time['data'][mask][0] + self.time['data'][mask][-1])
         
         params = Parameters()
         params.add('tau_rise', value=time_at_max-t_offset, min=0)
         params.add('tau_fall', value=t_fall_offset-time_at_max, min=0)
-        params.add('A', value=2., min=0)
+        params.add('A', value=self.A.max(), min=0)
         params.add('t_offset', value=t_offset)
-        params.add('v_offset', value=v_offset)
+        params.add('v_offset', value=0.0)
         
         try:
-            result = Minimizer(fcn2min, params, fcn_args=(self.time['data'][keep], self.A[keep], errors)).minimize()
+            result = Minimizer(fcn2min, params, fcn_args=(self.time['data'][keep], self.A[keep], errors)).minimize(method='least_squares')
+            self.fit_result = result
             self.par = result.params
+            np.save(self.filename.parent / (self.filename.stem+'.npy'), result)
             
             
             # print data
             report_fit(result, show_correl=False)
-        except:
+        except ValueError:
             print("Optimal parameters not found")
     
     
-    def plot_fit(self, save_figure=True):
+    def plotFit(self, save_figure=True, show_figure=False):
         import matplotlib.pyplot as plt
         
-        fig = plt.figure(figsize=(5, 5))
+        fig = plt.figure(figsize=(7, 7))
         ax0 = plt.subplot(111)
         
         ax0.plot(self.time['data']*1e6, self.A, linestyle='solid', label='Data', color='gray')
@@ -174,14 +209,70 @@ class Event():
         ax0.legend(loc='best')
         ax0.grid(color='gray', alpha=0.4)
         ax0.set_xlabel('Time [$\mu$'+self.horizontal_units+']')
-        ax0.set_ylabel('Amplitude')
+        ax0.set_ylabel('Amplitude [V]')
         plt.title(self.label)
         
         if save_figure:
-            fig.savefig(self.label+'.png', dpi=250)
-        plt.show()
+            fig.savefig(self.filename.parents[1]/(self.label+'.png'), dpi=250)
+        if show_figure:
+            plt.show()
         
+    def fancyPlotFit(self, save_figure=True, show_figure=False):
+        import matplotlib.pyplot as plt
+        import matplotlib.gridspec as gridspec
         
+        fig = plt.figure(figsize=(7, 7))
+        plt.clf()
+        fig.clear()
+        plt.subplots_adjust(hspace = 0.0, wspace=0.0)
+        gs0 = gridspec.GridSpec(nrows=5, ncols=5, figure=fig)
+        
+        fig.suptitle(self.label)
+        
+        # FIR PLOT
+        ax0 = fig.add_subplot(gs0[0:4, 0:4])
+        ax0.tick_params(axis='both', which='both', direction='in', bottom=True, left=True, top=True, right=True)
+        ax0.set_xticklabels([])
+        ax_res = fig.add_subplot(gs0[4, 0:4])
+        ax_res.tick_params(axis='both', which='both', direction='in', bottom=True, left=True, top=True, right=True)
+        ax_hist = fig.add_subplot(gs0[0:4, 4])
+        ax_hist.tick_params(axis='both', which='both', direction='in', bottom=True, left=True, top=True, right=True)
+        ax_hist.set_yticklabels([])
+        
+        FIR = impulse_response(self.time['data']*1e6, self.par['tau_rise'].value*1e6, self.par['tau_fall'].value*1e6, self.par['A'].value, self.par['t_offset'].value*1e6, self.par['v_offset'].value)
+        ax0.plot(self.time['data']*1e6, self.A, linestyle='solid', label='Data', color='gray', linewidth=1)
+        ax0.plot(self.time['data']*1e6, FIR, linestyle='solid', linewidth=4, label='Fit', color='red', alpha=0.5)
+        ax0.legend(loc='best')
+        ax0.grid(color='gray', alpha=0.4)
+        ax0.set_xlabel('Time [$\mu$'+self.horizontal_units+']')
+        ax0.set_ylabel('Amplitude ['+self.vertical_units+']')
+        
+        # RESIDUALS PLOT
+        res = self.A-FIR
+        ax_res.plot(self.time['data']*1e6, res, linestyle='solid', linewidth=1, label='Residuals', color='black')
+        ax_res.legend(loc='best')
+        ax_res.grid(color='gray', alpha=0.4)
+        ax_res.set_xlabel('Time [$\mu$'+self.horizontal_units+']')
+        
+        # HISTOGRAM PLOT
+        bin_heights, bin_position, result = self.compute_errorbars()
+        plt.stairs(bin_heights, bin_position, orientation='horizontal', fill=False, color='black')
+        
+        def gaussian(x, params):
+            return params['A']*np.exp(- 0.5 * (x-params['mu'])**2.0/params['sigma']**2.0)
+            
+        x_data = np.linspace(result.params['mu']-5.0*result.params['sigma'], result.params['mu']+5.0*result.params['sigma'], num=500)
+        ax_hist.plot(gaussian(x_data, result.params), x_data, color='blue')
+        ax_hist.grid(color='gray', alpha=0.4)
+        ax_hist.set_xlabel('Counts')
+        ax_hist.set_ylim(ax0.get_ylim())
+        ax_hist.xaxis.tick_top()
+        ax_hist.xaxis.set_label_position('top') 
+        
+        if save_figure:
+            fig.savefig(self.filename.parents[1]/(self.label+'.png'), dpi=250)
+        if show_figure:
+            plt.show()
     
     def printParameters(self):
         string = "{:.4e},{:.4e},{:.4e},{:.4e},{:.4e},{:.4e},{:.4e},{:.4e},{:.4e},{:.4e}".format(self.par['tau_rise'].value*1e6, self.par['tau_rise'].stderr*1e6, self.par['tau_fall'].value*1e6, 
@@ -204,7 +295,7 @@ def fitAverage(IQ_timestreams, bounds=[[0, 0, 0, -50], [400, 400, 100, 10]], p0=
     # read data
     for i,file in enumerate(IQ_timestreams):
         print(file)
-        t, chI, chQ = np.loadtxt(paths_cosmic_rays / file, float, delimiter=',', skiprows=21, unpack=True)
+        t, chI, chQ = np.loadtxt(file, float, delimiter=',', skiprows=21, unpack=True)
         
         if time_unit == 'ms':
             t *= 1e3 # in millisec
@@ -355,7 +446,7 @@ def fitAverageDoubleExp(IQ_timestreams, idx_lim=35000, bounds=[[0, 0, 0, 0, 0, -
     # read data
     for i,file in enumerate(IQ_timestreams):
         print(file)
-        t, chI, chQ = np.loadtxt(paths_cosmic_rays / file, float, delimiter=',', skiprows=21, unpack=True)
+        t, chI, chQ = np.loadtxt(file, float, delimiter=',', skiprows=21, unpack=True)
         
         if time_unit == 'ms':
             t *= 1e3 # in millisec
@@ -509,7 +600,7 @@ def fitEvents(IQ_timestreams):
     # read data
     for i,file in enumerate(IQ_timestreams):
         print(file)
-        t, chI, chQ = np.loadtxt(paths_cosmic_rays / file, float, delimiter=',', skiprows=21, unpack=True)
+        t, chI, chQ = np.loadtxt(file, float, delimiter=',', skiprows=21, unpack=True)
         t *= 1e6
         t -= t[0]
         A = np.sqrt((chI+1)**2. + (chQ+1)**2.) - np.sqrt(2)
@@ -565,36 +656,27 @@ def fitEvents(IQ_timestreams):
     return [times, amplitudes, pars, parErrs, fitFile]
     
 
-def plotEvents(fitFile, times, amplitudes, pars, parErrs):
+def plotEvents(events, y_offset=0.3, colormap='coolwarm', plot_fit=False):
     import matplotlib.pyplot as plt
     from matplotlib.pyplot import get_cmap
     
     # plot
-    fig = plt.figure(figsize=(6, 4))
-    ax0 = plt.subplot(111)
-    cmap = get_cmap('jet', lut=None)
+    fig = plt.figure(figsize=(7, 7))
+    ax = fig.gca()
+    cmap = get_cmap(colormap, lut=None)
     
-    offset = 0.1
-    
-    for i,(file, t, A, par, parErr) in enumerate(zip(fitFile, times, amplitudes, pars, parErrs)):
-        offset_i = i*offset
+    for i,e in enumerate(events):
+        offset_i = i*y_offset
         
-        color = cmap(i/len(fitFile))
-        ax0.plot(t, A+offset_i, marker='.', linestyle='', markersize=1, color=color, alpha=0.03)
-        ax0.plot(t, np.array(impulse_response(t, par[0], par[1], par[2], par[3]))+offset_i, 
-                 color=color, linewidth=2, label=file[6:12]+r" $\tau_{{qp}}$ = {:.2f}".format(par[1]))
+        color = cmap(i/len(events))
+        ax.plot(e.time['data']*1e6, e.A+offset_i, linestyle='solid', color=color, label=e.label, alpha=1.0)
+        if plot_fit:
+            FIR = impulse_response(e.time['data'], e.par['tau_rise'].value, e.par['tau_fall'].value, e.par['A'].value, e.par['t_offset'].value, e.par['v_offset'].value)
+            ax.plot(e.time['data']*1e6, FIR+offset_i, color=color, linewidth=2)
         
-        
-    handles, labels = ax0.get_legend_handles_labels()
-    handles = np.flip(handles)
-    labels = np.flip(labels)
-    
-    #ax0.set_xlim([-10, 250])
-    #ax0.set_ylim([-0.2, 2.2])
-    ax0.grid()
-    ax0.set_ylabel('Relative amplitude')
-    ax0.set_xlabel('Time [microsec]')
-    ax0.legend(handles, labels, loc='best')
+    ax.grid()
+    ax.set_ylabel('Amplitude + offset')
+    ax.set_xlabel('Time [microsec]')
     plt.show()
     
 def plotAmpTauCorrelation(IQ_timestreams, times, amplitudes, pars, parErrs):

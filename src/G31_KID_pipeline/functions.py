@@ -910,6 +910,36 @@ def n_qp(T, T_c, N_0):
     return 2.0*N_0*np.sqrt(2.0*np.pi*kb*T*Delta(T_c)) * np.exp(-Delta(T_c)/(kb*T))
 
 def electrical_phase_responsivity_linear_fit(nu_r, base_nu_r, T, T_c, N_0, V_abs, label='pixel', color='black', axis=None):
+    '''
+    Returns the slopes of the dx vs dN_qp trend
+
+    Parameters
+    ----------
+    nu_r : numpy array
+        resonant frequencies in MHz.
+    base_nu_r : float
+        base resonant frequency in MHz.
+    T : numpy array
+        sweep temperatures in K.
+    T_c : float
+        critical temperature in K.
+    N_0 : float
+        density of states at the Fermi surface in 1/um^3 1/J.
+    V_abs : float
+        absorber volume in um^3.
+    label : list, optional
+        list of labels. The default is 'pixel'.
+    color : list, optional
+        list of colors. The default is 'black'.
+    axis : matplotlib.pyplot axis, optional
+        axis for plot. The default is None.
+
+    Returns
+    -------
+    lmfit.params
+        dictionary of fit paramters.
+
+    '''
     from lmfit import Minimizer, Parameters
     from uncertainties import ufloat
     
@@ -947,9 +977,10 @@ def electrical_phase_responsivity_linear_fit(nu_r, base_nu_r, T, T_c, N_0, V_abs
         result = Minimizer(fcn2min, params, fcn_args=(N_qp, [d.n for d in delta_x], [d.s for d in delta_x])).minimize(method='least_squares')
         if axis is not None:
             axis.ticklabel_format(axis='both', style='sci', useMathText=True, scilimits=(0,0))
+            axis.tick_params(axis='both', which='both', direction='in', bottom=True, left=True, top=True, right=True)
             
-            axis.set_xlabel("Quasiparticle number")
-            axis.set_ylabel("Relative resonant frequency shift")
+            axis.set_xlabel("Quasiparticle number $\delta N_{qp}$")
+            axis.set_ylabel("Relative resonant frequency shift $\delta x$")
             
             axis.errorbar(N_qp, [d.n for d in delta_x], yerr=[d.s for d in delta_x], color=color, linestyle='', fmt='o', capsize=2, markersize=3)
             axis.plot(N_qp, linear_function(N_qp, result.params['slope'].value, result.params['intercept'].value), color=color, label=label)
@@ -989,7 +1020,6 @@ def electrical_phase_responsivity(slope, T_c, Q_tot, tau_qp, eta_qp):
 
     """
     return -slope*4.0*Q_tot*eta_qp*tau_qp/Delta(T_c) # rad/W
-
 '''
 noise_type = 'chp' or 'cha'
 '''
@@ -1012,7 +1042,7 @@ def plot_extracted_stream(filename, channel, axis, noise_type='chp', label=None,
 '''
 noise_type = 'chp' or 'cha'
 '''
-def plot_extracted_noise_spectral_density(filename, channel, sampling_frequency, axis=None, noise_type='chp', label=None, color=None, linestyle='solid', linewidth=1):
+def plot_extracted_noise_spectral_density(filename, channel, sampling_frequency, axis=None, noise_type='chp', label=None, color=None, linestyle='solid', linewidth=1, ylim=None):
     from scipy.signal import periodogram
     
     path = datapaths.output_noise / filename
@@ -1028,13 +1058,17 @@ def plot_extracted_noise_spectral_density(filename, channel, sampling_frequency,
     freqs, noise_spectral_density = periodogram(ch, fs=sampling_frequency, window="han", scaling="density")
 
     if axis is not None:
-        axis.plot(freqs, np.sqrt(noise_spectral_density), color=color, label=label, linestyle=linestyle, linewidth=linewidth)
+        axis.plot(freqs, np.sqrt(noise_spectral_density), color=color, label=label, linestyle=linestyle, linewidth=linewidth, alpha=0.6)
+        axis.tick_params(axis='both', which='both', direction='in', bottom=True, left=True, top=True, right=True)
         axis.grid(color="gray", alpha=0.5)
         axis.set_xlabel("Frequency [Hz]")
         axis.set_xlim([freqs[1], freqs[-1]])
         axis.set_xscale('log')
         axis.set_yscale('log')
         axis.set_ylabel("Noise spectral density [1/$\sqrt{Hz}$]")
+        
+        if ylim is not None:
+            axis.set_ylim(ylim)
     
     return freqs, noise_spectral_density
     
