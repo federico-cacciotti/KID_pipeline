@@ -11,7 +11,7 @@ from . import datapaths
 '''
         Function for overplotting targets and MS2034B data
 '''
-def overplotTargetSweeps(targets=None, ms2034b_data_list=None, channel_index=False, add_out_of_res_plot=False, complex_fit_above=False, flat_at_0db=True, colormap='coolwarm', markers=True):
+def overplotTargetSweeps(targets=None, ms2034b_data_list=None, channel_index=False, add_out_of_res_plot=False, complex_fit_above=False, flat_at_0db=True, colormap='coolwarm', markers=True, only_idxs=None):
     from matplotlib import pyplot as plt
     from matplotlib.lines import Line2D
     from matplotlib import cm
@@ -36,8 +36,11 @@ def overplotTargetSweeps(targets=None, ms2034b_data_list=None, channel_index=Fal
         for i,target in enumerate(targets):
             
             color = cmap(i/(len(targets)-1))
-            
-            for e in target.entry:
+            if only_idxs != None:
+                target_entries = [target.entry[idx] for idx in only_idxs]
+            else:
+                target_entries = target.entry
+            for e in target_entries:
                 # read one sweep at a time
                 if not e['is_out_of_res'] or add_out_of_res_plot:
                     channel = e['channel']
@@ -98,15 +101,14 @@ def overplotTargetSweeps(targets=None, ms2034b_data_list=None, channel_index=Fal
 
 
 
-def overplotTargetCircles(targets=None, ms2034b_data_list=None, complex_fit_above=False, colormap='coolwarm'):
+def overplotTargetCircles(targets=None, ms2034b_data_list=None, complex_fit_above=False, colormap='coolwarm', markers=True, only_idxs=None, force_raw_data=False):
     from matplotlib import pyplot as plt
     from matplotlib.lines import Line2D
     from matplotlib import cm
     cmap = cm.get_cmap(colormap, lut=None)
     
-    fig = plt.figure()
-    fig.set_size_inches(7, 7)
-    ax0 = plt.subplot(111)
+    fig = plt.figure(figsize=(7,7))
+    ax0 = fig.gca()
     
     ax0.yaxis.set_ticks_position('both')
     ax0.xaxis.set_ticks_position('both')
@@ -125,16 +127,32 @@ def overplotTargetCircles(targets=None, ms2034b_data_list=None, complex_fit_abov
             
             color = cmap(i/(len(targets)-1))
             
-            for e in target.entry:
+            if only_idxs != None:
+                target_entries = [target.entry[idx] for idx in only_idxs]
+            else:
+                target_entries = target.entry
+            for e in target_entries:
                 # read one sweep at a time
                 if e['is_out_of_res']==False:
                     channel = e['channel']
                     x_data_chan = np.load(datapaths.target_S21 / target.filename / "{:03d}".format(channel) / "freqs.npy")
                     
-                    I = np.load(datapaths.target_S21 / target.filename / "{:03d}".format(channel) / "I_prime.npy")
-                    Q = np.load(datapaths.target_S21 / target.filename / "{:03d}".format(channel) / "Q_prime.npy")
-                
-                    ax0.plot(I, Q, color=color, linestyle='', marker='o', markersize=5)
+                    try:
+                        if force_raw_data:
+                            raise FileNotFoundError
+                        I = np.load(datapaths.target_S21 / target.filename / "{:03d}".format(channel) / "I_prime.npy")
+                        Q = np.load(datapaths.target_S21 / target.filename / "{:03d}".format(channel) / "Q_prime.npy")
+                    except:
+                        I = np.load(datapaths.target_S21 / target.filename / "{:03d}".format(channel) / "I.npy")
+                        Q = np.load(datapaths.target_S21 / target.filename / "{:03d}".format(channel) / "Q.npy")
+                    
+                    if markers:
+                        ax0.plot(I, Q, color=color, linestyle='', marker='o', markersize=5)
+                    else:
+                        ax0.plot(I, Q, color=color, linestyle='-')
+                    
+                    ax0.axvline(0.0, linestyle='solid', color='gray')
+                    ax0.axhline(0.0, linestyle='solid', color='gray')
                 
                     if complex_fit_above:
                         try:
@@ -315,8 +333,15 @@ def buildS21Dataset(sweep, ROACH='MISTRAL'):
     elif ROACH == "MISTRAL":
         print("\tMISTRAL ROACH selected (freqs = LO + bb)")
     
-    LO_freqs = np.load(sweep_path / "sweep_freqs.npy")
-    bb_freqs = np.load(sweep_path / "bb_freqs.npy")
+    try:
+        LO_freqs = np.loadtxt(sweep_path / "sweep_freqs.dat")
+    except FileNotFoundError:
+        LO_freqs = np.load(sweep_path / "sweep_freqs.npy")
+        pass
+    try:
+        bb_freqs = np.loadtxt(sweep_path / "bb_freqs.dat")
+    except FileNotFoundError:
+        bb_freqs = np.load(sweep_path / "bb_freqs.npy")
     
     n_res = bb_freqs.size
     n_files = LO_freqs.size
@@ -457,12 +482,17 @@ def jointTargetSweeps(targets, exclude_channels=[[]], flat_at_0db=False):
 '''
                 complexS21Fit function
 '''
-def complexS21Fit(I, Q, freqs, res_freq, output_path, DATAPOINTS=100, verbose=False):
+def complexS21Fit(I, Q, freqs, res_freq, output_path, DATAPOINTS=100, verbose=False, force_emcee=False):
     from lmfit import Parameters, minimize, fit_report
     from uncertainties import ufloat
     
     # DATAPOINTS: number of left and right datapoints with respect to the resonance frequency 
     # to which the complex fit is computed
+    
+    # normalization of I and Q to max()
+    IQ_MAX = np.max([np.abs(I).max(), np.abs(Q).max()])
+    I /= IQ_MAX
+    Q /= IQ_MAX
     
     from pathlib import Path
     output_path = Path(output_path)
@@ -478,14 +508,17 @@ def complexS21Fit(I, Q, freqs, res_freq, output_path, DATAPOINTS=100, verbose=Fa
     phase = np.arctan2(Q, I)
     
     ARG_RESFREQ = np.argmin(A)
-    ARG_MIN = ARG_RESFREQ-DATAPOINTS
-    ARG_MAX = ARG_RESFREQ+DATAPOINTS
-    # check if there are enough datapoints at the left of the resonance frequency
+    ARG_MIN = ARG_RESFREQ-int(0.5*DATAPOINTS)
+    ARG_MAX = ARG_RESFREQ+int(0.5*DATAPOINTS)
+    # check if there are enough datapoints at the left of the resonant frequency
     if ARG_MIN < 0:
         ARG_MIN = 0
-    # check if there are enough datapoints at the right of the resonance frequency
+    # check if there are enough datapoints at the right of the resonant frequency
     if ARG_MAX >= A.size:
         ARG_MAX = A.size-1
+        
+    # a stupid guess of the resonant frequency
+    res_freq = freqs[ARG_RESFREQ]
         
     
     # removing the cable delay
@@ -561,7 +594,7 @@ def complexS21Fit(I, Q, freqs, res_freq, output_path, DATAPOINTS=100, verbose=Fa
         
     params = Parameters()
     params.add('Q_tot', value=5000, min=0)
-    params.add('nu_r', value=res_freq, min=res_freq*0.99, max=res_freq*1.01)
+    params.add('nu_r', value=res_freq, min=res_freq*0.9, max=res_freq*1.1)
     
     x_data = freqs[ARG_MIN:ARG_MAX]
     y_data = ph_second[ARG_MIN:ARG_MAX]
@@ -585,6 +618,14 @@ def complexS21Fit(I, Q, freqs, res_freq, output_path, DATAPOINTS=100, verbose=Fa
     Rea = 0.5*(I[-1]+I[0])
     a_norm = np.sqrt(Ima**2.0 + Rea**2.0)
     Q_c = 0.5*a_norm*Q_totPhFit/radius
+    try:
+        Q_i = Q_totPhFit*Q_c/(Q_c-Q_totPhFit)
+        if Q_i<0.0:
+            Q_i = 1.0e7 # this should be a sufficiently high value
+    except ZeroDivisionError:
+        Q_i = 1.0e7 # this should be a sufficiently high value
+        pass
+        
     # let's compute phi0
     alpha_angle = np.angle(Rea+1j*Ima)
     beta_angle = np.angle(Xc-Rea+1j*(Yc-Ima))
@@ -596,7 +637,7 @@ def complexS21Fit(I, Q, freqs, res_freq, output_path, DATAPOINTS=100, verbose=Fa
     
     # 6-parameters complex fit (fine tuning)
     # complex residuals over errorbars
-    def complexResiduals(params, freq, z_val, z_err):
+    def complexResiduals(params, freq, z_val, z_err=None):
         Rea = params['Rea']
         Ima = params['Ima']
         Q_tot = params['Q_tot']
@@ -604,15 +645,19 @@ def complexS21Fit(I, Q, freqs, res_freq, output_path, DATAPOINTS=100, verbose=Fa
         nu_r = params['nu_r']
         phi_0 = params['phi_0']
         tau = params['tau']
-        return np.abs( (z_val - S_21(freq, Rea, Ima, Q_tot, Q_c, nu_r, phi_0, tau))/z_err )
+        if z_err is None:
+            return np.abs(z_val - S_21(freq, Rea, Ima, Q_tot, Q_c, nu_r, phi_0, tau)) 
+        else:
+            return np.abs( (z_val - S_21(freq, Rea, Ima, Q_tot, Q_c, nu_r, phi_0, tau))/z_err) 
     
     # chi2 minimization
     params = Parameters()
-    params.add('Rea', value=Rea)
-    params.add('Ima', value=Ima)
-    params.add('Q_tot', value=Q_totPhFit, min=0)
-    params.add('Q_c', value=Q_c, min=0)
-    params.add('nu_r', value=nu_rPhFit, min=nu_rPhFit*0.99, max=nu_rPhFit*1.01)
+    params.add('Rea', value=Rea, min=-2.0, max=2.0)
+    params.add('Ima', value=Ima, min=-2.0, max=2.0)
+    params.add('Q_c', value=Q_c, min=0.0, max=1.0e12)
+    params.add('Q_i', value=Q_i, min=0.0, max=1.0e12)
+    params.add('Q_tot', expr='(Q_c*Q_i)/(Q_c+Q_i)')
+    params.add('nu_r', value=nu_rPhFit, min=nu_rPhFit*0.9, max=nu_rPhFit*1.1)
     params.add('phi_0', value=phi_0, min=0.0, max=2.0*np.pi)
     params.add('tau', value=tau, vary=False)
     
@@ -622,22 +667,37 @@ def complexS21Fit(I, Q, freqs, res_freq, output_path, DATAPOINTS=100, verbose=Fa
     
     # try a leastsquare fit otherwise an MCMC
     try:
-        out = minimize(complexResiduals, params, args=(freqs, z_data, z_err), method='leastsq')
-        Rea = ufloat(out.params['Rea'].value, out.params['Rea'].stderr)
-        Ima = ufloat(out.params['Ima'].value, out.params['Ima'].stderr)
-        Q_tot = ufloat(out.params['Q_tot'].value, out.params['Q_tot'].stderr)
+        out = minimize(complexResiduals, params, args=(freqs, z_data, z_err), method='leastsq', max_nfev=1000)
+        if verbose:
+            print("\n\tcomplex fit results")
+            print("\t"+fit_report(out))
+        file = open(output_path / "log.txt","a")
+        file.write(fit_report(out))
+        file.close()
+        Rea = ufloat(out.params['Rea'].value, out.params['Rea'].stderr)*IQ_MAX
+        Ima = ufloat(out.params['Ima'].value, out.params['Ima'].stderr)*IQ_MAX
         Q_c = ufloat(out.params['Q_c'].value, out.params['Q_c'].stderr)
+        Q_i = ufloat(out.params['Q_i'].value, out.params['Q_i'].stderr)
+        Q_tot = ufloat(out.params['Q_tot'].value, out.params['Q_tot'].stderr)
         nu_r = ufloat(out.params['nu_r'].value, out.params['nu_r'].stderr)
         phi_0 = ufloat(out.params['phi_0'].value, out.params['phi_0'].stderr)
-    except:
-        emcee_kws = dict(steps=2500, burn=500, nwalkers=100, progress=False)
-        out = minimize(complexResiduals, params, args=(freqs, z_data, z_err), method='emcee', **emcee_kws)
-        Rea = ufloat(out.params['Rea'].value, out.params['Rea'].stderr)
-        Ima = ufloat(out.params['Ima'].value, out.params['Ima'].stderr)
-        Q_tot = ufloat(out.params['Q_tot'].value, out.params['Q_tot'].stderr)
-        Q_c = ufloat(out.params['Q_c'].value, out.params['Q_c'].stderr)
-        nu_r = ufloat(out.params['nu_r'].value, out.params['nu_r'].stderr)
-        phi_0 = ufloat(out.params['phi_0'].value, out.params['phi_0'].stderr)
+    except: 
+        if force_emcee:
+            emcee_kws = dict(steps=5500, burn=500, nwalkers=100, progress=True)
+            out = minimize(complexResiduals, params, args=(freqs, z_data, z_err), method='emcee', **emcee_kws)
+            if verbose:
+                print("\n\tcomplex fit results")
+                print("\t"+fit_report(out))
+            file = open(output_path / "log.txt","a")
+            file.write(fit_report(out))
+            file.close()
+            Rea = ufloat(out.params['Rea'].value, out.params['Rea'].stderr)
+            Ima = ufloat(out.params['Ima'].value, out.params['Ima'].stderr)
+            Q_tot = ufloat(out.params['Q_tot'].value, out.params['Q_tot'].stderr)
+            Q_c = ufloat(out.params['Q_c'].value, out.params['Q_c'].stderr)
+            nu_r = ufloat(out.params['nu_r'].value, out.params['nu_r'].stderr)
+            phi_0 = ufloat(out.params['phi_0'].value, out.params['phi_0'].stderr)
+    
     
     if verbose:
         print("\n\tcomplex fit results")
@@ -645,7 +705,8 @@ def complexS21Fit(I, Q, freqs, res_freq, output_path, DATAPOINTS=100, verbose=Fa
     file = open(output_path / "log.txt","a")
     file.write(fit_report(out))
     file.close()
-
+    
+    '''
     # compute the Q_i value
     Q_i = Q_c*Q_tot/(Q_c-Q_tot)
     
@@ -654,13 +715,14 @@ def complexS21Fit(I, Q, freqs, res_freq, output_path, DATAPOINTS=100, verbose=Fa
     file = open(output_path / "log.txt","a")
     file.write("\nQ_i: {:uf}".format(Q_i))
     file.close()
+    '''
 
     # save data into .npy files
-    np.save(output_path / "I_prime.npy", I)
-    np.save(output_path / "Q_prime.npy", Q)
+    np.save(output_path / "I_prime.npy", I*IQ_MAX)
+    np.save(output_path / "Q_prime.npy", Q*IQ_MAX)
     np.save(output_path / "phase_prime.npy", phase)
-    np.save(output_path / "I_second.npy", I_second)
-    np.save(output_path / "Q_second.npy", Q_second)
+    np.save(output_path / "I_second.npy", I_second*IQ_MAX)
+    np.save(output_path / "Q_second.npy", Q_second*IQ_MAX)
     np.save(output_path / "mag_second.npy", mag_second)
     np.save(output_path / "phase_second.npy", ph_second)
     np.save(output_path / "transformation_parameters.npy", arr=[Xc, Yc, rotAngle])

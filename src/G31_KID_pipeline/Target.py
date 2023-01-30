@@ -21,7 +21,12 @@ class Target():
         self.in_res_target_idx_aligned = []
         
         try:
-            self.target_freqs_new = np.load(datapaths.target / self.filename / 'target_freqs_new.npy')
+            path = datapaths.target / self.filename / 'target_freqs_new.npy'
+            if path.exists():
+                self.target_freqs_new = np.load(path)
+            else:
+                path = datapaths.target / self.filename / 'target_freqs_new.dat'
+                self.target_freqs_new = np.loadtxt(path)
         except:
             print("Cannot find the target directory '{:s}'.".format(self.filename))
             sys.exit()
