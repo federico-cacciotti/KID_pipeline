@@ -49,6 +49,12 @@ class MS2034B():
             return self.S21mag()*np.sin(self.S21A)
         if self.mode == 'real_imag':
             return self.ImS21
+        
+    def S21phase(self):
+        if self.mode == 'log_mag_phase':
+            return self.S21A
+        if self.mode == 'real_imag':
+            return np.arctan2(self.ImS21, self.ReS21)
     
     def fitS21(self, DATAPOINTS=3500):
         I = self.S21_I()

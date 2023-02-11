@@ -8,6 +8,8 @@ def update_spreadsheet(spreadsheet_name, sweep):
     
     worksheet_name = str(sweep.temperature)+'mK_'+sweep.filename
     
+    print('Updating worksheet {:s}...'.format(worksheet_name))
+    
     # try to open an existing worksheet otherwise creates it
     try:
         ws = sh.worksheet(worksheet_name)
@@ -53,6 +55,8 @@ def update_spreadsheet(spreadsheet_name, sweep):
     # write on the gspreadsheet
     ws.update([df.columns.values.tolist()] + df.values.tolist())
     
+    print('Updated.')
+    
     
 
 
@@ -87,3 +91,44 @@ def write_electrical_phase_responsivity(spreadsheet_name, index, responsivity):
 
     # write on the gspreadsheet
     ws.update([df.columns.values.tolist()] + df.values.tolist())
+    
+    
+    
+    
+    
+def write_column(spreadsheet_name, worksheet_name, header, coordinates, data_column):
+    import gspread
+    import numpy as np
+    import pandas as pd
+
+    gc = gspread.service_account()
+    sh = gc.open(spreadsheet_name)
+    
+    # try to open an existing worksheet
+    try:
+        print("Updating '{:s}' -> '{:s}' -> '{:s}'...".format(spreadsheet_name, worksheet_name, header))
+        ws = sh.worksheet(worksheet_name)
+    except:
+        print("Selected worksheet does not exist.")
+    
+    row, col = gspread.utils.a1_to_rowcol(coordinates)
+    
+    column_size = len(data_column)
+    
+    pos1 = gspread.utils.rowcol_to_a1(row+1, col)
+    pos2 = gspread.utils.rowcol_to_a1(row+1+column_size, col)
+    
+    # bold header
+    ws.format(coordinates, {'textFormat': {'bold': True, "fontSize": 9}})
+    # column format 
+    ws.format('{:s}:{:s}'.format(pos1, pos2), {"numberFormat": {"type": "SCIENTIFIC", "pattern": "0.000E+0"}})
+
+    df = pd.DataFrame(data={header: data_column})
+    
+    # write on the gspreadsheet
+    ws.update(coordinates, [df.columns.values.tolist()] + df.values.tolist())
+    
+    
+    
+    
+    

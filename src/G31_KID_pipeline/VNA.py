@@ -65,7 +65,7 @@ class VNA():
             self.label = label
             
             
-    def removeBaseline(self, mag_filt='airp_lss', phase_filt='lowpass_cosine'):
+    def removeBaseline(self, mag_filt='airp_lss', phase_detrend=True, phase_filt='lowpass_cosine'):
         '''
         Remove the baseline of the VNA sweep in order to find resonances
 
@@ -78,6 +78,8 @@ class VNA():
                 - 'airp_lss' for an adaptive iteratively reweighted penalized
                     least square smoothing algorithm.
             default is 'airp_lss'.
+        phase_detrend : boolean, optional
+            Linear detrend if True. The default is True.
         phase_filt : string, optional
             Same description as the mag_filt parameter. 'lowpass_cosine' works
             better. The default is 'lowpass_cosine'.
@@ -153,9 +155,10 @@ class VNA():
         self.Q = Q
         
         # phase detrend
-        from scipy.signal import detrend
-        detrend(phase, axis=-1, type='linear', overwrite_data=True)
-        phase -= phase[0]
+        if phase_detrend:
+            from scipy.signal import detrend
+            detrend(phase, axis=-1, type='linear', overwrite_data=True)
+            phase -= phase[0]
         
         # mag filter
         if mag_filt == 'lowpass_cosine':
@@ -182,7 +185,7 @@ class VNA():
     
         return mag, phase
     
-    def plotSweep(self, xlim=None, mag_filt='airp_lss', phase_filt='lowpass_cosine'):
+    def plotSweep(self, xlim=None, mag_filt='airp_lss', phase_filt='lowpass_cosine', phase_detrend=True):
         '''
         This function plots both the amplitude and phase data of the VNA sweep.
 
@@ -207,7 +210,7 @@ class VNA():
 
         '''
         print("Plot VNA sweep...")
-        mag, phase = self.removeBaseline(mag_filt, phase_filt)
+        mag, phase = self.removeBaseline(mag_filt=mag_filt, phase_filt=phase_filt, phase_detrend=phase_detrend)
         
         from matplotlib import pyplot as plt
         fig = plt.figure()

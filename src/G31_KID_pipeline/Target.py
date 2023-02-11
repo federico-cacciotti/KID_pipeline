@@ -92,7 +92,7 @@ class Target():
                     
         return out_of_res_number
 
-    def fitS21(self, channel, DATAPOINTS=70):
+    def fitS21(self, channel, RESFREQ=None, DATAPOINTS=70, plot=False):
         print("")
         from tqdm import tqdm
         
@@ -110,7 +110,7 @@ class Target():
                     out_path = datapaths.target_S21 / self.filename / "{:03d}".format(c)
                     
                     try:
-                        params, chi2 = fc.complexS21Fit(I=I, Q=Q, freqs=freqs, res_freq=e['target_freq'], 
+                        params, chi2 = fc.complexS21Fit(I=I, Q=Q, freqs=freqs, 
                                                output_path=out_path, DATAPOINTS=DATAPOINTS)
                         
                         e['Re[a]'] = params['Re[a]']
@@ -131,7 +131,7 @@ class Target():
             freqs = np.load(path / "{:03d}".format(channel) / "freqs.npy", allow_pickle=True)
             out_path = datapaths.target_S21 / self.filename / "{:03d}".format(channel)
             
-            params, chi2 = fc.complexS21Fit(I=I, Q=Q, freqs=freqs, res_freq=self.entry[channel]['target_freq'], 
+            params, chi2 = fc.complexS21Fit(I=I, Q=Q, freqs=freqs, RESFREQ=RESFREQ, 
                           output_path=out_path, DATAPOINTS=DATAPOINTS, verbose=True)
                 
             self.entry[channel]['Re[a]'] = params['Re[a]']
@@ -143,6 +143,8 @@ class Target():
             self.entry[channel]['phi_0'] = params['phi_0']
             self.entry[channel]['reduced_chi2'] = float(chi2)
             
+            if plot:
+                self.plotS21(channel=channel)
         return
         
     # read S21 data for all the tones
@@ -207,7 +209,22 @@ class Target():
             except:
                 print(self.temperature, e['target_freq'], e['channel'], e['depth'], e['is_out_of_res'], e['number_of_peaks'], None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
     
-    def plotSweep(self, flat_at_0db=False):
+    def plotSweep(self, flat_at_0db=False, plot_type='amplitude'):
+        '''
+        Plot the whole target sweep.
+
+        Parameters
+        ----------
+        flat_at_0db : bool, optional
+            First element of each channel is moved to 0dB if True. The default is False.
+        plot_type : str, optional
+            'amplitude', 'phase' or 'circle' for the respective plot. The default is 'amplitude'.
+
+        Returns
+        -------
+        None.
+
+        '''
         from matplotlib import pyplot as plt
         fig,ax = plt.subplots()
         
@@ -216,10 +233,17 @@ class Target():
         for e in self.entry:
             # read one sweep at a time
             channel = e['channel']
-            x_data_chan = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "freqs.npy")
-            y_data_chan = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "mag.npy")
+            if plot_type == 'amplitude':
+                x_data_chan = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "freqs.npy")
+                y_data_chan = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "mag.npy")
+            elif plot_type == 'phase':
+                x_data_chan = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "freqs.npy")
+                y_data_chan = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "phase.npy")
+            elif plot_type == 'circle':
+                x_data_chan = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "I.npy")
+                y_data_chan = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "Q.npy")
             
-            if flat_at_0db:
+            if flat_at_0db and plot_type=='amplitude':
                 y_data_chan -= max(y_data_chan)
             
             if e['is_out_of_res']:
@@ -263,8 +287,17 @@ class Target():
         fig.canvas.mpl_connect("motion_notify_event", on_plot_hover)
         
         plt.grid(linestyle='-', alpha=0.5)
-        plt.ylabel('Mag [dB]')
-        plt.xlabel('Frequency [MHz]')
+        if plot_type == 'amplitude':
+            plt.ylabel('Mag [dB]')
+            plt.xlabel('Frequency [MHz]')
+        elif plot_type == 'phase':
+            plt.ylabel('Phase [rad]')
+            plt.xlabel('Frequency [MHz]')
+        elif plot_type == 'circle':
+            ax = fig.gca()
+            ax.set_aspect('equal')
+            plt.ylabel('Q')
+            plt.xlabel('I')
         
         plt.show()
         

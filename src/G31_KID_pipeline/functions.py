@@ -34,8 +34,10 @@ def overplotTargetSweeps(targets=None, ms2034b_data_list=None, channel_index=Fal
     handles = []
     if targets != None:
         for i,target in enumerate(targets):
-            
-            color = cmap(i/(len(targets)-1))
+            try:
+                color = cmap(i/(len(targets)-1))
+            except ZeroDivisionError:
+                color = cmap(0)
             if only_idxs != None:
                 target_entries = [target.entry[idx] for idx in only_idxs]
             else:
@@ -48,11 +50,13 @@ def overplotTargetSweeps(targets=None, ms2034b_data_list=None, channel_index=Fal
                     y_data_chan = np.load(datapaths.target_S21 / target.filename / "{:03d}".format(channel) / "mag.npy")
                     
                     if flat_at_0db:
-                        y_offset = y_data_chan[0]
+                        hist, bin_edges = np.histogram(y_data_chan, bins=70)
+                        hist_arg_max = hist.argmax()
+                        y_offset = 0.5*(bin_edges[hist_arg_max]+bin_edges[hist_arg_max+1])
                         y_data_chan -= y_offset
                 
                     if markers:
-                        ax0.plot(x_data_chan, y_data_chan, color=color, linestyle='', marker='o', markersize=5)
+                        ax0.plot(x_data_chan, y_data_chan, color=color, linestyle='-', linewidth=1, marker='o', markersize=3.5)
                     else:
                         ax0.plot(x_data_chan, y_data_chan, color=color, linestyle='solid')
                     
@@ -66,7 +70,7 @@ def overplotTargetSweeps(targets=None, ms2034b_data_list=None, channel_index=Fal
                             nu_peack = np.random.normal(e['nu_r'].n, 0.001, 1000) # peak sample
                             nu = np.concatenate([nu_linear, nu_peack])
                             nu = np.sort(nu)
-                            Z = S_21(nu, e['Re[a]'].n, e['Im[a]'].n, e['Q_tot'].n, e['Q_c'].n, e['nu_r'].n, e['phi_0'].n, tau=0.04)
+                            Z = S_21(nu, e['Re[a]'].n, e['Im[a]'].n, e['Q_tot'].n, e['Q_c'].n, e['nu_r'].n, e['phi_0'].n)
                             mag = 20*np.log10(np.abs(Z))
                             if flat_at_0db:
                                 mag -= y_offset
@@ -160,7 +164,7 @@ def overplotTargetCircles(targets=None, ms2034b_data_list=None, complex_fit_abov
                             nu_peack = np.random.normal(e['nu_r'].n, 0.001, 1000) # peak sample
                             nu = np.concatenate([nu_linear, nu_peack])
                             nu = np.sort(nu)
-                            Z = S_21(nu, e['Re[a]'].n, e['Im[a]'].n, e['Q_tot'].n, e['Q_c'].n, e['nu_r'].n, e['phi_0'].n, tau=0.04)
+                            Z = S_21(nu, e['Re[a]'].n, e['Im[a]'].n, e['Q_tot'].n, e['Q_c'].n, e['nu_r'].n, e['phi_0'].n)
                             
                             ax0.plot(np.real(Z), np.imag(Z), linestyle='solid', color=color, alpha=0.6, linewidth=4)
                         except:
@@ -394,28 +398,29 @@ def buildS21Dataset(sweep, ROACH='MISTRAL'):
 '''
             S_21 function
 '''
-def S_21(nu, Rea, Ima, Q_tot, Q_c, nu_r, phi_0, tau):
+def S_21(nu, Rea, Ima, Q_tot, Q_c, nu_r, phi_0, tau=0.0):
     '''
     This function returns the S21 scattering parameter.
 
     Parameters
     ----------
-    nu : number, usually is a numpy array or listo of number
+    nu : float, usually is a numpy array or list of number
         Frequency in [Hz].
-    Rea : number
+    Rea : float
         Real part of the amplitude parameter.
-    Ima : number
+    Ima : float
         Imaginary part of the amplitude parameter.
-    Q_tot : number
+    Q_tot : float
         Total quality factor.
-    Q_c : number
+    Q_c : float
         Coupling quality factor.
-    nu_r : number
+    nu_r : float
         Resonant frequency in [Hz].
     phi_0 : number, between [0; 2pi]
         Phase parameter decribing the rotation of the resonant circle.
-    tau : number
+    tau : float, optional
         Time delay due to the transmission line length in [s].
+        The default is 0.0
 
     Returns
     -------
@@ -424,7 +429,7 @@ def S_21(nu, Rea, Ima, Q_tot, Q_c, nu_r, phi_0, tau):
 
     '''
     a = Rea + Ima*1j
-    return np.exp(1j*2.0*np.pi*tau*nu)*a*(1.0 - (Q_tot/Q_c)*np.exp(1j*phi_0) / (1+2*1j*Q_tot*(nu-nu_r)/nu_r) )
+    return np.exp(-1j*2.0*np.pi*tau*nu)*a*(1.0 - (Q_tot/Q_c)*np.exp(1j*phi_0) / (1+2*1j*Q_tot*(nu-nu_r)/nu_r) )
 
 
 
@@ -482,7 +487,35 @@ def jointTargetSweeps(targets, exclude_channels=[[]], flat_at_0db=False):
 '''
                 complexS21Fit function
 '''
-def complexS21Fit(I, Q, freqs, res_freq, output_path, DATAPOINTS=100, verbose=False, force_emcee=False):
+def complexS21Fit(I, Q, freqs, output_path, RESFREQ=None, DATAPOINTS=100, verbose=False, force_emcee=False):
+    '''
+    Returns the complex fit of the S21 transfer function
+
+    Parameters
+    ----------
+    I : TYPE
+        DESCRIPTION.
+    Q : TYPE
+        DESCRIPTION.
+    freqs : TYPE
+        DESCRIPTION.
+    output_path : TYPE
+        DESCRIPTION.
+    RESFREQ : TYPE, optional
+        DESCRIPTION. The default is None.
+    DATAPOINTS : TYPE, optional
+        DESCRIPTION. The default is 100.
+    verbose : TYPE, optional
+        DESCRIPTION. The default is False.
+    force_emcee : TYPE, optional
+        DESCRIPTION. The default is False.
+
+    Returns
+    -------
+    TYPE
+        DESCRIPTION.
+
+    '''
     from lmfit import Parameters, minimize, fit_report
     from uncertainties import ufloat
     
@@ -507,7 +540,18 @@ def complexS21Fit(I, Q, freqs, res_freq, output_path, DATAPOINTS=100, verbose=Fa
     A = np.sqrt(I**2.0 + Q**2.0)
     phase = np.arctan2(Q, I)
     
-    ARG_RESFREQ = np.argmin(A)
+    # a stupid guess of the resonant frequency if not given
+    if RESFREQ != None:
+        try:
+            ARG_RESFREQ = np.argwhere(freqs >= RESFREQ)[0][0]
+            RESFREQ = freqs[ARG_RESFREQ]
+        except IndexError: 
+            print('Given value of RESFREQ is out of bounds. Setting res_feq to min(A).')
+    else:
+        #ARG_RESFREQ = np.argmin(A[int(A.size*0.33):int(A.size*0.66)]) + int(A.size*0.33)
+        ARG_RESFREQ = np.argmin(A)
+        RESFREQ = freqs[ARG_RESFREQ]
+    
     ARG_MIN = ARG_RESFREQ-int(0.5*DATAPOINTS)
     ARG_MAX = ARG_RESFREQ+int(0.5*DATAPOINTS)
     # check if there are enough datapoints at the left of the resonant frequency
@@ -517,12 +561,9 @@ def complexS21Fit(I, Q, freqs, res_freq, output_path, DATAPOINTS=100, verbose=Fa
     if ARG_MAX >= A.size:
         ARG_MAX = A.size-1
         
-    # a stupid guess of the resonant frequency
-    res_freq = freqs[ARG_RESFREQ]
-        
     
     # removing the cable delay
-    tau = 0.04 # microsec
+    tau = 0.05 # microsec
     phase += 2.0*np.pi*tau*freqs
     phase -= int(phase[0]/np.pi)*np.pi
     phase = np.unwrap(phase)
@@ -534,8 +575,8 @@ def complexS21Fit(I, Q, freqs, res_freq, output_path, DATAPOINTS=100, verbose=Fa
     QErr = Q*0.01
     
     # compute the center coordinates by averaging max and min data values
-    I_m, I_M = I.min(), I.max()
-    Q_m, Q_M = Q.min(), Q.max()
+    I_m, I_M = I[ARG_MIN:ARG_MAX].min(), I[ARG_MIN:ARG_MAX].max()
+    Q_m, Q_M = Q[ARG_MIN:ARG_MAX].min(), Q[ARG_MIN:ARG_MAX].max()
     Xc = (I_m+I_M)*0.5
     Yc = (Q_m+Q_M)*0.5
     
@@ -555,8 +596,8 @@ def complexS21Fit(I, Q, freqs, res_freq, output_path, DATAPOINTS=100, verbose=Fa
     Q_rot = Q-Yc
     
     # rotation
-    I_mid = 0.5*(I_rot[-1]+I_rot[0])
-    Q_mid = 0.5*(Q_rot[-1]+Q_rot[0])
+    I_mid = 0.5*(I_rot[ARG_MAX]+I_rot[ARG_MIN])
+    Q_mid = 0.5*(Q_rot[ARG_MAX]+Q_rot[ARG_MIN])
     rotAngle = np.pi-np.arctan2(Q_mid, I_mid)
     
     if verbose:
@@ -584,23 +625,25 @@ def complexS21Fit(I, Q, freqs, res_freq, output_path, DATAPOINTS=100, verbose=Fa
     
     
     # phase fit
-    def phaseFunction(nu, Q_tot, nu_r):
-        return -2*np.arctan2((2.0*Q_tot*(nu/nu_r-1.0)), 1.0)
+    def phaseFunction(nu, Q_tot, nu_r, y0):
+        return -2*np.arctan2((2.0*Q_tot*(nu/nu_r-1.0)), 1.0) - y0
     
     def phaseFunctionResiduals(params, nu, data, uncertainty):
         Q_tot = params['Q_tot']
         nu_r = params['nu_r']
-        return (data-phaseFunction(nu, Q_tot, nu_r))/uncertainty
+        y0 = params['y0']
+        return (data-phaseFunction(nu, Q_tot, nu_r, y0))/uncertainty
         
     params = Parameters()
     params.add('Q_tot', value=5000, min=0)
-    params.add('nu_r', value=res_freq, min=res_freq*0.9, max=res_freq*1.1)
+    params.add('nu_r', value=RESFREQ, min=RESFREQ*0.8, max=RESFREQ*1.2)
+    params.add('y0', value=-ph_second[ARG_RESFREQ], min=-5.0*np.pi, max=5.0*np.pi)
     
     x_data = freqs[ARG_MIN:ARG_MAX]
-    y_data = ph_second[ARG_MIN:ARG_MAX]
-    uncertainty = 0.01*ph_second[ARG_MIN:ARG_MAX]
+    y_data = ph_second[ARG_MIN:ARG_MAX] # offset here!
+    uncertainty = 0.1*ph_second[ARG_MIN:ARG_MAX]
     
-    out = minimize(phaseFunctionResiduals, params, args=(x_data, y_data, uncertainty), method='leastsq')
+    out = minimize(phaseFunctionResiduals, params, args=(x_data, y_data, uncertainty), method='leastsq', max_nfev=1000)
     
     if verbose:
         print("\n\tphase fit")
@@ -611,11 +654,12 @@ def complexS21Fit(I, Q, freqs, res_freq, output_path, DATAPOINTS=100, verbose=Fa
     
     Q_totPhFit = out.params['Q_tot'].value
     nu_rPhFit = out.params['nu_r'].value
+    y0_ph_fit = out.params['y0'].value
     
     # compute Qc and Phi0 from fit parameters
     # guess the value of a
-    Ima = 0.5*(Q[-1]+Q[0])
-    Rea = 0.5*(I[-1]+I[0])
+    Ima = 0.5*(Q[ARG_MAX]+Q[ARG_MIN])
+    Rea = 0.5*(I[ARG_MAX]+I[ARG_MIN])
     a_norm = np.sqrt(Ima**2.0 + Rea**2.0)
     Q_c = 0.5*a_norm*Q_totPhFit/radius
     try:
@@ -657,9 +701,9 @@ def complexS21Fit(I, Q, freqs, res_freq, output_path, DATAPOINTS=100, verbose=Fa
     params.add('Q_c', value=Q_c, min=0.0, max=1.0e12)
     params.add('Q_i', value=Q_i, min=0.0, max=1.0e12)
     params.add('Q_tot', expr='(Q_c*Q_i)/(Q_c+Q_i)')
-    params.add('nu_r', value=nu_rPhFit, min=nu_rPhFit*0.9, max=nu_rPhFit*1.1)
+    params.add('nu_r', value=nu_rPhFit, min=nu_rPhFit*0.8, max=nu_rPhFit*1.2)
     params.add('phi_0', value=phi_0, min=0.0, max=2.0*np.pi)
-    params.add('tau', value=tau, vary=False)
+    params.add('tau', value=0.0, vary=False)
     
     z_data = I[ARG_MIN:ARG_MAX]+1j*Q[ARG_MIN:ARG_MAX]
     z_err = IErr[ARG_MIN:ARG_MAX]+1j*QErr[ARG_MIN:ARG_MAX]
@@ -697,14 +741,8 @@ def complexS21Fit(I, Q, freqs, res_freq, output_path, DATAPOINTS=100, verbose=Fa
             Q_c = ufloat(out.params['Q_c'].value, out.params['Q_c'].stderr)
             nu_r = ufloat(out.params['nu_r'].value, out.params['nu_r'].stderr)
             phi_0 = ufloat(out.params['phi_0'].value, out.params['phi_0'].stderr)
+        pass
     
-    
-    if verbose:
-        print("\n\tcomplex fit results")
-        print("\t"+fit_report(out))
-    file = open(output_path / "log.txt","a")
-    file.write(fit_report(out))
-    file.close()
     
     '''
     # compute the Q_i value
@@ -726,10 +764,11 @@ def complexS21Fit(I, Q, freqs, res_freq, output_path, DATAPOINTS=100, verbose=Fa
     np.save(output_path / "mag_second.npy", mag_second)
     np.save(output_path / "phase_second.npy", ph_second)
     np.save(output_path / "transformation_parameters.npy", arr=[Xc, Yc, rotAngle])
-    np.save(output_path / "phase_fit_parameters.npy", arr=[radius, Q_totPhFit, nu_rPhFit])
+    np.save(output_path / "phase_fit_parameters.npy", arr=[radius, Q_totPhFit, nu_rPhFit, y0_ph_fit])
     np.save(output_path / "reduced_chi2.npy", arr=out.redchi)
     np.save(output_path / "complex_parameters.npy", arr=[Rea.n, Rea.s, Ima.n, Ima.s, Q_tot.n, Q_tot.s, Q_c.n, Q_c.s, 
                                                          Q_i.n, Q_i.s, nu_r.n, nu_r.s, phi_0.n, phi_0.s, tau])
+    np.save(output_path / "fit_interval_extrema.npy", arr=[ARG_MIN, ARG_MAX])
     
     return {'Re[a]': Rea, 'Im[a]': Ima, 'Q_tot': Q_tot, 'Q_c': Q_c, 'Q_i': Q_i, 'nu_r': nu_r, 'phi_0': phi_0, 'tau': tau}, out.redchi
 
@@ -764,16 +803,34 @@ def complexS21Plot(complex_fit_data_path):
     Q_second = np.load(complex_fit_data_path / "Q_second.npy")
     #mag_second = np.load(output_path / "mag_second.npy")
     phase_second = np.load(complex_fit_data_path / "phase_second.npy")
-    if phase_second[0] <= 0.0:
-        phase_second += 2.0*np.pi
-    phase_second = np.unwrap(phase_second)
+    #if phase_second[0] <= 0.0:
+    #    phase_second += 2.0*np.pi
+    #phase_second = np.unwrap(phase_second)
     
-    [Xc, Yc, rotAngle] = np.load(complex_fit_data_path / "transformation_parameters.npy")
-    [radius, Q_phfit, nu_r_ph_fit] = np.load(complex_fit_data_path / "phase_fit_parameters.npy")
-    [Rea, ReaErr, Ima, ImaErr, Qt, QtErr, Qc, QcErr, Qi, QiErr, nu_r, nu_rErr, phi0, phi0Err, tau] = np.load(complex_fit_data_path / "complex_parameters.npy")
+    try:
+        [Xc, Yc, rotAngle] = np.load(complex_fit_data_path / "transformation_parameters.npy")
+    except FileNotFoundError:
+        print("Phase fit parameters not found!")
+        pass
+    try:
+        [radius, Q_phfit, nu_r_ph_fit, y0_ph_fit] = np.load(complex_fit_data_path / "phase_fit_parameters.npy")
+        [Rea, ReaErr, Ima, ImaErr, Qt, QtErr, Qc, QcErr, Qi, QiErr, nu_r, nu_rErr, phi0, phi0Err, tau] = np.load(complex_fit_data_path / "complex_parameters.npy")
+    except ValueError:
+        [radius, Q_phfit, nu_r_ph_fit] = np.load(complex_fit_data_path / "phase_fit_parameters.npy")
+        y0_ph_fit = 0.0
+        pass
+    except FileNotFoundError:
+        print("S21 fit parameters not found!")
+        pass
+    try:
+        [ARG_MIN, ARG_MAX] = np.load(complex_fit_data_path / "fit_interval_extrema.npy")
+        ARG_MIN = int(ARG_MIN)
+        ARG_MAX = int(ARG_MAX)
+    except FileNotFoundError:
+        pass
     
-    def phaseFunction(nu, Q, nu_r):
-        return -2*np.arctan2((2.0*Q*(nu/nu_r-1.0)), 1.0)
+    def phaseFunction(nu, Q, nu_r, y0):
+        return -2*np.arctan2((2.0*Q*(nu/nu_r-1.0)), 1.0) - y0
     
     # PLOT
     from matplotlib import pyplot as plt
@@ -794,40 +851,46 @@ def complexS21Plot(complex_fit_data_path):
     color_notau_alpha = (0, 0, 0, 0.3)
     color_centered = (0, 210/255, 249/255, 1.0)
     color_centered_alpha = (0, 210/255, 249/255, 0.3)
+    color_fit_interval = (250/255, 253/255, 15/255)
     
-    # raw IQ data plot
-    circlePlot.plot(I, Q, color=color_raw,linestyle='-', marker='o', markersize=4, markerfacecolor=color_raw_alpha)#, label='Raw data')
-    circlePlot.plot(I_prime, Q_prime, color=color_notau,linestyle='-', marker='o', markersize=4, markerfacecolor=color_notau_alpha)#, label=r'$\tau$ removed')
-    #circlePlot.errorbar(I, Q, xerr=IErr, yerr=QErr, marker='.', linestyle='--', linewidth=1.0, markersize=1.0, color='green', alpha=1.0, label='Raw data')
-    #circlePlot.errorbar(I_prime, Q_prime, xerr=IErr, yerr=QErr, marker='.', linestyle='--', linewidth=1.0, markersize=1.0, color='black', alpha=1.0, label='Tau removed')
-    
-    # Complex plot 
-    Z_freqs = np.linspace(freqs[0], freqs[-1], num=2000)
-    Z = S_21(Z_freqs, Rea, Ima, Qt, Qc, nu_r, phi0, tau)
-    circlePlot.plot(np.real(Z), np.imag(Z), linestyle='-', color='red', alpha=0.5, linewidth=3.0)#, label='S$_{21}$ Fit')
-    
-    # resonance after translation and rotation
-    #circlePlot.plot(I_second, Q_second, marker='.', markersize=1.0, color='black', alpha=0.5, label='Centered data')
-    circlePlot.plot(I_second, Q_second, color=color_centered,linestyle='-', marker='o', markersize=4, markerfacecolor=color_centered_alpha)#, label='Centered data')
-    # circle fit plot
-    #phiTrain = np.linspace(0.0, 2.0*np.pi, 100)
-    #circlePlot.plot(radius*np.cos(phiTrain), radius*np.sin(phiTrain), linestyle='-', color='blue', alpha=0.3, linewidth=3.0)#, label='Circle Fit')
+    # axis
     circlePlot.axvline(x=0.0, ymin=-10.0, ymax=10.0, linewidth='1.0', linestyle='--', color='black', alpha=0.3)
     circlePlot.axhline(y=0.0, xmin=-10.0, xmax=10.0, linewidth='1.0', linestyle='--', color='black', alpha=0.3)
     
-    # phase plot
-    phasePlot1.plot(freqs, phase_second, color=color_centered,linestyle='-', marker='o', markersize=4, markerfacecolor=color_centered_alpha)#, label='Centered data')
-    #phasePlot1.plot(freqs, ph_second, marker='.', markersize=1.0, color=color_centered, alpha=0.5, label='Phase')
-    phasePlot1.plot(freqs, phaseFunction(freqs, Q_phfit, nu_r_ph_fit), linestyle='-', color='blue', alpha=0.3, linewidth=3.0)#, label='Phase fit')
+    # raw IQ data
+    circlePlot.plot(I, Q, color=color_raw,linestyle='-', marker='o', markersize=4, markerfacecolor=color_raw_alpha)
+    # centerd data
+    circlePlot.plot(I_second, Q_second, color=color_centered,linestyle='-', marker='o', markersize=4, markerfacecolor=color_centered_alpha)
+    phasePlot1.plot(freqs, phase_second, color=color_centered,linestyle='-', marker='o', markersize=4, markerfacecolor=color_centered_alpha)
     
-    #phasePlot2.plot(freqs, ph_prime, marker='.', markersize=1.0, color=color_notau, alpha=0.5, label='Phase')
-    phasePlot2.plot(freqs, phase_prime, color=color_notau,linestyle='-', marker='o', markersize=4, markerfacecolor=color_notau_alpha)#, label='Phase')
-    phasePlot2.plot(Z_freqs, np.unwrap(np.angle(Z)), linestyle='-', color='red', alpha=0.5, linewidth=3.0)#, label='S$_{21}$ Fit')
+    # IQ data to be fitted
+    circlePlot.plot(I_prime, Q_prime, color=color_notau,linestyle='-', marker='o', markersize=4, markerfacecolor=color_notau_alpha)
+    phasePlot2.plot(freqs, phase_prime, color=color_notau,linestyle='-', marker='o', markersize=4, markerfacecolor=color_notau_alpha)
+    amplitudePlot.plot(freqs, mag-mag[0], color=color_notau,linestyle='-', marker='o', markersize=4, markerfacecolor=color_notau_alpha)
     
-    # amplitude plot
-    #amplitudePlot.plot(freqs, A, marker='.', markersize=1.0, color=color_notau, alpha=0.5, label='Amplitude')
-    amplitudePlot.plot(freqs, mag-mag[0], color=color_notau,linestyle='-', marker='o', markersize=4, markerfacecolor=color_notau_alpha)#, label='Amplitude')
-    amplitudePlot.plot(Z_freqs, 20*np.log10(np.abs(Z))-mag[0], linestyle='-', color='red', alpha=0.5, linewidth=3.0)#, label='S$_{21}$ Fit')
+    # plot of the fit interval points
+    try:
+        circlePlot.plot(I_prime[ARG_MIN:ARG_MAX], Q_prime[ARG_MIN:ARG_MAX], color=color_fit_interval, linestyle='', marker='o', markersize=2, markerfacecolor=color_fit_interval)
+        phasePlot2.plot(freqs[ARG_MIN:ARG_MAX], phase_prime[ARG_MIN:ARG_MAX], color=color_fit_interval, linestyle='', marker='o', markersize=2, markerfacecolor=color_fit_interval)
+        amplitudePlot.plot(freqs[ARG_MIN:ARG_MAX], mag[ARG_MIN:ARG_MAX]-mag[0], color=color_fit_interval, linestyle='', marker='o', markersize=2, markerfacecolor=color_fit_interval)
+    except:
+        pass
+    
+    # phase fit
+    try:
+        phasePlot1.plot(freqs, phaseFunction(freqs, Q_phfit, nu_r_ph_fit, y0_ph_fit), linestyle='-', color='blue', alpha=0.3, linewidth=3.0)#, label='Phase fit')
+    except:
+        pass
+    # Complex fit
+    try:
+        Z_freqs = np.linspace(freqs[0], freqs[-1], num=2000)
+        Z = S_21(Z_freqs, Rea, Ima, Qt, Qc, nu_r, phi0)
+        circlePlot.plot(np.real(Z), np.imag(Z), linestyle='-', color='red', alpha=0.5, linewidth=3.0)
+        phasePlot2.plot(Z_freqs, np.unwrap(np.angle(Z)), linestyle='-', color='red', alpha=0.5, linewidth=3.0)
+        amplitudePlot.plot(Z_freqs, 20*np.log10(np.abs(Z))-mag[0], linestyle='-', color='red', alpha=0.5, linewidth=3.0)
+    except:
+        pass
+    
     
     handle = [Line2D([0], [0], color=color_raw,linestyle='-', marker='o', markersize=4, markerfacecolor=color_raw_alpha, label='Raw data'),
               Line2D([0], [0], color=color_notau,linestyle='-', marker='o', markersize=4, markerfacecolor=color_notau_alpha, label=r'$\tau$ removed'),
@@ -969,9 +1032,10 @@ def Delta(T_c):
 
 def n_qp(T, T_c, N_0):
     from scipy.constants import k as kb
-    return 2.0*N_0*np.sqrt(2.0*np.pi*kb*T*Delta(T_c)) * np.exp(-Delta(T_c)/(kb*T))
+    from uncertainties import unumpy as unp
+    return 2.0*N_0*unp.sqrt(2.0*np.pi*kb*T*Delta(T_c)) * unp.exp(-Delta(T_c)/(kb*T))
 
-def electrical_phase_responsivity_linear_fit(nu_r, base_nu_r, T, T_c, N_0, V_abs, label='pixel', color='black', axis=None):
+def electrical_phase_responsivity_linear_fit(nu_r, base_nu_r, T, T_c, N_0, V_abs, label=None, color='black', axis=None):
     '''
     Returns the slopes of the dx vs dN_qp trend
 
@@ -1003,12 +1067,11 @@ def electrical_phase_responsivity_linear_fit(nu_r, base_nu_r, T, T_c, N_0, V_abs
 
     '''
     from lmfit import Minimizer, Parameters
-    from uncertainties import ufloat
+    from uncertainties import ufloat, unumpy as unp
     
     # converts lists to np arrays
-    delta_x = [(n-base_nu_r)/base_nu_r for n in nu_r]
-    error_max = max([d.s for d in delta_x])
-    delta_x = [(n-base_nu_r)/base_nu_r + 0.5*ufloat(0.0, error_max) for n in nu_r]
+    nu0 = ufloat(base_nu_r.n, base_nu_r.s)
+    delta_x = [(n-nu0)/nu0 for n in nu_r]
     
     T = np.asarray(T)
     
@@ -1032,11 +1095,11 @@ def electrical_phase_responsivity_linear_fit(nu_r, base_nu_r, T, T_c, N_0, V_abs
     
     # linear fit
     params = Parameters()
-    params.add('slope', value=(min(delta_x).n-max(delta_x).n)/(max(N_qp)-min(N_qp)), min=0, max=-np.inf)
+    params.add('slope', value=(min(delta_x).n-max(delta_x).n)/(max(unp.nominal_values(N_qp))-min(unp.nominal_values(N_qp))), min=0, max=-np.inf)
     params.add('intercept', value=0.0, min=-1, max=1)
     
     try:
-        result = Minimizer(fcn2min, params, fcn_args=(N_qp, [d.n for d in delta_x], [d.s for d in delta_x])).minimize(method='least_squares')
+        result = Minimizer(fcn2min, params, fcn_args=(unp.nominal_values(N_qp), [d.n for d in delta_x], [d.s for d in delta_x])).minimize(method='least_squares')
         if axis is not None:
             axis.ticklabel_format(axis='both', style='sci', useMathText=True, scilimits=(0,0))
             axis.tick_params(axis='both', which='both', direction='in', bottom=True, left=True, top=True, right=True)
@@ -1044,17 +1107,99 @@ def electrical_phase_responsivity_linear_fit(nu_r, base_nu_r, T, T_c, N_0, V_abs
             axis.set_xlabel("Quasiparticle number $\delta N_{qp}$")
             axis.set_ylabel("Relative resonant frequency shift $\delta x$")
             
-            axis.errorbar(N_qp, [d.n for d in delta_x], yerr=[d.s for d in delta_x], color=color, linestyle='', fmt='o', capsize=2, markersize=3)
-            axis.plot(N_qp, linear_function(N_qp, result.params['slope'].value, result.params['intercept'].value), color=color, label=label)
+            axis.errorbar(unp.nominal_values(N_qp), [d.n for d in delta_x], yerr=[d.s for d in delta_x], xerr=unp.std_devs(N_qp), color=color, linestyle='', fmt='o', capsize=2, markersize=3)
+            axis.plot(unp.nominal_values(N_qp), linear_function(unp.nominal_values(N_qp), result.params['slope'].value, result.params['intercept'].value), color=color, label=label)
             
             axis.grid(color='gray', alpha=0.4)
             
             return result.params
-    except:
+    except ValueError:
         print("Cannot find fit parameters.")
         return
+    
+    
+    
+
+def electrical_amplitude_responsivity_linear_fit(Q_i, T, T_c, N_0, V_abs, label=None, color='black', axis=None):
+    '''
+    Returns the slopes of the dx vs dN_qp trend
+
+    Parameters
+    ----------
+    Q_i : numpy array
+        internal quality factors.
+    T : numpy array
+        sweep temperatures in K.
+    T_c : float
+        critical temperature in K.
+    N_0 : float
+        density of states at the Fermi surface in 1/um^3 1/J.
+    V_abs : float
+        absorber volume in um^3.
+    label : list, optional
+        list of labels. The default is 'pixel'.
+    color : list, optional
+        list of colors. The default is 'black'.
+    axis : matplotlib.pyplot axis, optional
+        axis for plot. The default is None.
+
+    Returns
+    -------
+    lmfit.params
+        dictionary of fit paramters.
+
+    '''
+    from lmfit import Minimizer, Parameters
+    from uncertainties import unumpy as unp
+    
+    # converts lists to np arrays
+    uQ_i = unp.uarray([x.n for x in Q_i], [x.s for x in Q_i])
+    one_over_Q_i = 1.0/uQ_i
+    
+    T = np.asarray(T)
+    
+    # function used for the fit procedure
+    def linear_function(x, slope, intercept):
+        return x*slope + intercept
+    
+    def fcn2min(params, x, data, errs=None):
+        slope = params['slope']
+        intercept = params['intercept']
         
-    return result.params
+        model = linear_function(x, slope, intercept)
+        
+        if errs is None:
+            return data-model
+        
+        return (data-model)/errs
+    
+    # quasiparticle number density
+    N_qp = V_abs * n_qp(T, T_c, N_0)
+    
+    # linear fit
+    params = Parameters()
+    params.add('slope', value=(max(unp.nominal_values(one_over_Q_i))-min(unp.nominal_values(one_over_Q_i)))/(max(unp.nominal_values(N_qp))-min(unp.nominal_values(N_qp))), min=0, max=np.inf)
+    params.add('intercept', value=0.0, min=-np.inf, max=np.inf)
+    
+    try:
+        result = Minimizer(fcn2min, params, fcn_args=(unp.nominal_values(N_qp), unp.nominal_values(one_over_Q_i),  unp.std_devs(one_over_Q_i))).minimize(method='least_squares')
+        if axis is not None:
+            axis.ticklabel_format(axis='both', style='sci', useMathText=True, scilimits=(0,0))
+            axis.tick_params(axis='both', which='both', direction='in', bottom=True, left=True, top=True, right=True)
+            
+            axis.set_xlabel("Quasiparticle number $\delta N_{qp}$")
+            axis.set_ylabel("$1/Q_i$")
+            
+            axis.errorbar(unp.nominal_values(N_qp), [Q.n for Q in one_over_Q_i], yerr=[Q.s for Q in one_over_Q_i], xerr=unp.std_devs(N_qp), color=color, linestyle='', fmt='o', capsize=2, markersize=3)
+            axis.plot(unp.nominal_values(N_qp), linear_function(unp.nominal_values(N_qp), result.params['slope'].value, result.params['intercept'].value), color=color, label=label)
+            
+            axis.grid(color='gray', alpha=0.4)
+            
+            return result.params
+    except ValueError:
+        print("Cannot find fit parameters.")
+        return    
+
 
 
 
@@ -1082,6 +1227,35 @@ def electrical_phase_responsivity(slope, T_c, Q_tot, tau_qp, eta_qp):
 
     """
     return -slope*4.0*Q_tot*eta_qp*tau_qp/Delta(T_c) # rad/W
+
+
+def electrical_amplitude_responsivity(slope, T_c, Q_tot, tau_qp, eta_qp):
+    """
+    This functions returns the electrical amplitude responsivity
+
+    Parameters
+    ----------
+    slope : (u)float
+        The slope of the 1/Q_i vs N_qp linear trend.
+    T_c : (u)float
+        Critical temperature in Kelvin.
+    Q_tot : (u)float
+        Total quality factor.
+    tau_qp : (u)float
+        Quasiparticle recombination time in seconds.
+    eta_qp : float
+        Pair breaking efficiency.
+
+    Returns
+    -------
+    (u)float
+        The electrical amplitude responsivity in rad/Watt.
+
+    """
+    return slope*Q_tot*eta_qp*tau_qp/Delta(T_c) # rad/W
+
+
+
 '''
 noise_type = 'chp' or 'cha'
 '''

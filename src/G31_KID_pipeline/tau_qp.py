@@ -25,13 +25,15 @@ def exponential_decay(t, A, tau, t_offset):
 
 class Event():
     
-    def __init__(self, filename, CH1=None, CH2=None, CH3=None, CH4=None, label='Event', n_sigma=2.0):
+    def __init__(self, filename, CH1=None, CH2=None, CH3=None, CH4=None, I_DC=None, Q_DC=None, label='Event', n_sigma=2.0):
         
         self.label = label
         self.time = {'label': 'TIME', 'data': []}
         self.channels = {}
         self.filename = Path(filename)
         self.n_sigma = n_sigma
+        self.I_DC = I_DC
+        self.Q_DC = Q_DC
         print("Reading "+self.filename.stem+"...")
         
         for i,CHi in enumerate([CH1, CH2, CH3, CH4]):
@@ -61,18 +63,24 @@ class Event():
             except:
                 pass
         
-        # add a constant >> Q and I
-        C = 1000.0
-        if np.abs(self.channels[self.I_channel]['data'].min()) > np.abs(self.channels[self.I_channel]['data'].max()):
-            I = self.channels[self.I_channel]['data'] - C
+        if self.I_DC == None or self.Q_DC==None:
+            # add a constant >> Q and I
+            C = 1000.0
+            if np.abs(self.channels[self.I_channel]['data'].min()) > np.abs(self.channels[self.I_channel]['data'].max()):
+                self.I = self.channels[self.I_channel]['data'] - C
+            else:
+                self.I = self.channels[self.I_channel]['data'] + C
+            if np.abs(self.channels[self.Q_channel]['data'].min()) > np.abs(self.channels[self.Q_channel]['data'].max()):
+                self.Q = self.channels[self.Q_channel]['data'] - C
+            else:
+                self.Q = self.channels[self.Q_channel]['data'] + C
+            self.A = np.sqrt(self.I*self.I + self.Q*self.Q) - np.sqrt(2.0*C**2.0)
         else:
-            I = self.channels[self.I_channel]['data'] + C
-        if np.abs(self.channels[self.Q_channel]['data'].min()) > np.abs(self.channels[self.Q_channel]['data'].max()):
-            Q = self.channels[self.Q_channel]['data'] - C
-        else:
-            Q = self.channels[self.Q_channel]['data'] + C
-        
-        self.A = np.sqrt(I*I + Q*Q) - np.sqrt(2.0*C**2.0)
+            self.I = self.channels[self.I_channel]['data'] + self.I_DC
+            self.Q = self.channels[self.Q_channel]['data'] + self.Q_DC
+            self.A = np.sqrt(self.I*self.I + self.Q*self.Q)
+        self.phase = np.arctan2(self.Q, self.I)
+        self.phase = np.unwrap(self.phase)
             
         # check if fit parameters already exists
         self.fit_result = None
@@ -90,30 +98,24 @@ class Event():
         
         colors = ['gray', 'red', 'blue', 'green']
         
-        fig = plt.figure(figsize=(5, 5))
-        ax0 = fig.gca()
+        fig, axis = plt.subplots(1, 3, sharex=True, figsize=(7,7))
         
         for CHi, color in zip(self.channels, colors):
-            ax0.plot(self.time['data'], self.channels[str(CHi)]['data'], linestyle='solid', label=self.channels[str(CHi)]['label'], color=color)
+            axis[0].plot(self.time['data'], self.channels[str(CHi)]['data'], linestyle='solid', label=self.channels[str(CHi)]['label'], color=color)
     
-        # compute amplitude and phase of the signal
-        amplitude = np.sqrt(self.channels[self.I_channel]['data']**2. + self.channels[self.Q_channel]['data']**2.)
-        phase = np.arctan2(self.channels[self.Q_channel]['data']+5, self.channels[self.I_channel]['data']+5)
-        phase = np.unwrap(phase)
+        fig.suptitle(self.label)
         
-        # plot the amplitude on the same y axis
-        ax0.plot(self.time['data'], amplitude, color='orange', label='Amplitude', linestyle='solid')
-    
-        ax0.legend(loc='best')
-        ax0.grid(color='gray', alpha=0.4)
-        ax0.set_xlabel('Time ['+self.horizontal_units+']')
-        ax0.set_ylabel('Voltage ['+self.vertical_units+']')
-        plt.title(self.label)
+        # plot amplitude and phase
+        axis[1].plot(self.time['data'], self.A, color='black', label='Amplitude', linestyle='solid')
+        axis[2].plot(self.time['data'], self.phase, color='black', label='Phase', linestyle='solid')
         
-        # plot the phase on a different y axis
-        ax1 = ax0.twinx()
-        ax1.plot(self.time['data'], phase, color='violet', linestyle='solid', label='Phase')
-        ax1.set_ylabel('Phase [rad]')
+        for ax in axis:
+            ax.legend(loc='best')
+            ax.grid(color='gray', alpha=0.4)
+            ax.set_xlabel('Time ['+self.horizontal_units+']')
+        axis[0].set_ylabel('Voltage ['+self.vertical_units+']')
+        axis[1].set_ylabel('Voltage ['+self.vertical_units+']')
+        axis[2].set_ylabel('Phase [rad]')
         
         plt.show()
         
@@ -147,14 +149,14 @@ class Event():
     def fit(self, force_fit=False):
         # check if fit parameters already exist
         if not np.any(self.par == None) and force_fit == False:
-            print("Fit parameters already exist. Try to force the fitting routine by passing 'force_fit=True' to the fit functions.")
+            print("Fit parameters already exist. Try to force the fitting routine by passing 'force_fit=True' to the fit function.")
             return 0
         
         from lmfit import Minimizer, Parameters, report_fit
         
         # fit
         # errorbars are the std dev of the lower part of the stream
-        bin_heights, bin_position, result = self.compute_errorbars(self.n_sigma)
+        bin_heights, bin_position, result = self.compute_errorbars()
         
         keep = np.array(self.A) >= -10.0 # all the stream
         errors = np.ones(len(keep))*result.params['sigma'].value
@@ -172,15 +174,15 @@ class Event():
         t_offset = self.time['data'][mask][0]
         t_fall_offset = self.time['data'][mask][-1]
         
-        mask = self.A >= 0.95*self.A.max()
+        mask = self.A >= 0.90*self.A.max()
         time_at_max = 0.5*(self.time['data'][mask][0] + self.time['data'][mask][-1])
         
         params = Parameters()
-        params.add('tau_rise', value=time_at_max-t_offset, min=0)
-        params.add('tau_fall', value=t_fall_offset-time_at_max, min=0)
-        params.add('A', value=self.A.max(), min=0)
-        params.add('t_offset', value=t_offset)
-        params.add('v_offset', value=0.0)
+        params.add('tau_rise', value=time_at_max-t_offset, min=0.0, max=1.0e-3)
+        params.add('tau_fall', value=t_fall_offset-time_at_max, min=0.0, max=1.0e-3)
+        params.add('A', value=self.A.max(), min=0.0, max=np.inf)
+        params.add('t_offset', value=t_offset, min=-1.0, max=1.0)
+        params.add('v_offset', value=result.params['mu'].value, min=-1.0, max=1.0)
         
         try:
             result = Minimizer(fcn2min, params, fcn_args=(self.time['data'][keep], self.A[keep], errors)).minimize(method='least_squares')
