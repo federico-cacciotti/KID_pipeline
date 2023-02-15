@@ -1,16 +1,21 @@
 from pathlib import Path
 
-working_directory = '/Users/federicocacciotti/Documents/PhD/dati'
+print('Looking for remote data folder...')
+working_directory = Path('/Volumes/homes/Federico Cacciotti/dati')
+if not working_directory.exists():
+    print('Remote data folder not found.')
+    print('Switching to local data folder...')
+    working_directory = Path('/Users/federicocacciotti/Documents/PhD/dati')
 
-target = Path(working_directory) / Path('target')
-vna = Path(working_directory) / Path('vna')
-target_S21 = Path(working_directory) / Path('target_S21')
-vna_S21 = Path(working_directory) / Path('vna_S21')
-dirfile = Path(working_directory) / Path('data_logger')
-output_noise = Path(working_directory) / Path('noise')
-cosmic_rays = Path(working_directory) / Path('cosmic_rays')
-picolog = Path(working_directory) / Path('picolog')
-anritsuMS2034B = Path(working_directory) / Path('anritsu_MS2034B')
+target = working_directory / Path('target')
+vna = working_directory / Path('vna')
+target_S21 = working_directory / Path('target_S21')
+vna_S21 = working_directory / Path('vna_S21')
+dirfile = working_directory / Path('data_logger')
+output_noise = working_directory / Path('noise')
+cosmic_rays = working_directory / Path('cosmic_rays')
+picolog = working_directory / Path('picolog')
+anritsuMS2034B = working_directory / Path('anritsu_MS2034B')
 
 
 def check_if_dirs_exist(mkdir = False):
