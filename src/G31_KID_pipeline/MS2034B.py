@@ -28,7 +28,7 @@ class MS2034B():
     
     def S21mag_dB(self):
         if self.mode == 'log_mag_phase':
-            return self.S12DB
+            return self.S21DB
         if self.mode == 'real_imag':
             return 20.0*np.log10(np.sqrt(self.ReS21**2.0+self.ImS21**2.0))
         
