@@ -7,7 +7,7 @@ import sys
             Target class
 '''
 class Target():
-    def __init__(self, filename, temperature=None, build_dataset=False, label=None, out_of_resonance_parameter=2.0):
+    def __init__(self, filename, temperature=None, build_dataset=False, label=None, out_of_resonance_parameter=2.0, find_double=False):
         print("+ + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + +")
         print('Reding target sweep {:s}...'.format(filename))
         self.filename = filename
@@ -61,7 +61,8 @@ class Target():
         
         self.readS21Data()
         
-        self.findDouble()
+        if find_double:
+            self.findDouble()
         print("+ + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + +")
     
 
