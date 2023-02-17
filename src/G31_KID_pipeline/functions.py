@@ -1344,6 +1344,26 @@ def electrical_phase_noise_equivalent_power(responsivity, noise_spectral_density
     return freqs, NEP
 
 
+
+def psd(ydata, fs, window='hann', nfft=None):
+    from scipy.signal import periodogram, welch
+    import numpy as np
+    freqs, spectrum = periodogram(ydata, fs=fs, scaling="density", window=window, nfft=nfft)
+    #freqs, spectrum = welch(ch, fs=fs, window='hann', scaling='density')
+    psd = np.sqrt(spectrum)
+    return freqs, psd
+
+
+
+def filt(ydata, Wn, fs, order=2, filter_type='highpass'):
+    from scipy.signal import butter, sosfilt
+    sos = butter(N=order, Wn=Wn, btype=filter_type, fs=fs, output='sos')
+    filtered = sosfilt(sos, ydata)
+    return filtered
+
+
+
+
 '''
             lsTarget function
 '''

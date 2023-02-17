@@ -1,64 +1,42 @@
 from . import datapaths
 
 class Dirfile():
-    def __init__(self, filename, fs, first_frame, num_frames):
+    def __init__(self, filename, fs, first_frame, num_frames=10000, label=None):
         self.filename = filename
         self.fs = fs
         self.first_frame = first_frame
         self.num_frames = num_frames
+        
+        if label == None:
+            self.label = filename
+        else:
+            self.label = label
   
     
     '''
     noise_type = 'p', 'a', 'I' or 'Q'
     '''
-    def plot_stream(self, channel, data_type, first_frame, num_frames, axis, xdata='frame', label=None, color=None, linestyle='solid', linewidth=1):
+    def get_stream(self, channel, data_type, xdata_type='time'):
         import pygetdata
-
-        if label is None:
-            label = "ch{:s}_{:03d}".format(data_type, channel)
-
+        
         # open time streams
-        ctime = pygetdata.dirfile((datapaths.dirfile/self.filename).as_posix()).getdata("time", first_frame=first_frame, num_frames=num_frames)
-        ctime -= ctime[0]
-        ch = pygetdata.dirfile((datapaths.dirfile/self.filename).as_posix()).getdata("ch{:s}_{:03d}".format(data_type, channel), first_frame=first_frame, num_frames=num_frames)
+        xdata = pygetdata.dirfile((datapaths.dirfile/self.filename).as_posix()).getdata("time", first_frame=self.first_frame, num_frames=self.num_frames)
+        xdata -= xdata[0]
+        ydata = pygetdata.dirfile((datapaths.dirfile/self.filename).as_posix()).getdata("ch{:s}_{:03d}".format(data_type, channel), first_frame=self.first_frame, num_frames=self.num_frames)
         
-        if xdata == 'time':
-            axis.plot(ctime, ch, color=color, label=label, linestyle=linestyle, linewidth=linewidth)
-            axis.set_xlabel("Time [s]")
-        if xdata == 'frame':
-            axis.plot(range(first_frame, first_frame+ch.size), ch, color=color, label=label, linestyle=linestyle, linewidth=linewidth)
-            axis.set_xlabel("Frames")
+        if xdata_type == 'time':
+            return xdata, ydata
         
+        if xdata_type == 'index':
+            xdata = range(self.first_frame, self.first_frame+ydata.size)
+            return xdata, ydata
+    
+    def plot_stream(self, xdata, ydata, axis=None, label=None, color=None, linestyle='solid', linewidth=1, alpha=1.0):
+        
+        if axis == None:
+            import matplotlib.pyplot as plt
+            fig = plt.figure(figsize=(7,7))
+            axis = fig.gca()
         axis.grid(color="gray", alpha=0.5)
         
-        axis.set_ylabel(data_type)
-
-
-
-    '''
-    noise_type = 'p', 'a', 'I' or 'Q'
-    '''
-    def plot_psd(self, channel, data_type, axis, label=None, color=None, linestyle='solid', linewidth=1):
-        import pygetdata
-        from scipy.signal import periodogram, welch
-        import numpy as np
-        
-        if label is None:
-            label = "ch{:s}_{:03d}".format(data_type, channel)
-
-        # open time streams
-        ctime = pygetdata.dirfile((datapaths.dirfile/self.filename).as_posix()).getdata("time", first_frame=self.first_frame, num_frames=self.num_frames)
-        ctime -= ctime[0]
-        ch = pygetdata.dirfile((datapaths.dirfile/self.filename).as_posix()).getdata("ch{:s}_{:03d}".format(data_type, channel), first_frame=self.first_frame, num_frames=self.num_frames)
-        
-        freqs, spectrum = periodogram(ch, fs=self.fs, scaling="density", window="hann")
-        #freqs, spectrum = welch(ch, fs=fs, window='hann', scaling='density')
-        
-        psd = np.sqrt(spectrum)
-        
-        axis.plot(freqs, psd, color=color, label=label, linestyle=linestyle, linewidth=linewidth)
-        axis.set_xscale('log')
-        axis.set_yscale('log')
-        axis.grid(color="gray", alpha=0.5)
-        axis.set_xlabel("Frequency [s]")
-        axis.set_ylabel("PSD [1/$\sqrt{Hz}$]")
+        axis.plot(xdata, ydata, color=color, label=label, linestyle=linestyle, linewidth=linewidth, alpha=alpha)
