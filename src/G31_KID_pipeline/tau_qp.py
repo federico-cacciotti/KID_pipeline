@@ -90,7 +90,7 @@ class Event():
             self.par = self.fit_result.params
             print("Found fit parameters!")
         except FileNotFoundError:
-            print("Fit parameters do not already exist.")
+            print("Fit parameters do not exist.")
             
         
     def plot(self):

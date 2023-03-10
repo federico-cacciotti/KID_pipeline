@@ -248,7 +248,8 @@ class VNA():
                 freqs = np.load(file_path/'freqs.npy')
                 mag = np.load(file_path/'mag.npy')
                 
-                self.entry.append({'target_freq': (freqs[0]+freqs[-1])*0.5,
+                self.entry.append({'channel': i,
+                                  'target_freq': (freqs[0]+freqs[-1])*0.5,
                                   'depth': min(mag),
                                   'reduced_chi2': float(np.load(file_path / "reduced_chi2.npy", allow_pickle=False)),
                                   'Re[a]': ufloat(Rea_n, Rea_s),
@@ -259,7 +260,8 @@ class VNA():
                                   'nu_r': ufloat(nu_r_n, nu_r_s),
                                   'phi_0': ufloat(phi_0_n, phi_0_s)})
             except: 
-                self.entry.append({'target_freq': (freqs[0]+freqs[-1])*0.5,
+                self.entry.append({'channel': i,
+                                  'target_freq': (freqs[0]+freqs[-1])*0.5,
                                   'depth': min(mag),
                                   'reduced_chi2': None,
                                   'Re[a]': None,
@@ -438,7 +440,7 @@ class VNA():
         plt.show()
     
     
-    def fitS21(self, channel, DATAPOINTS=50):
+    def fitS21(self, channel, RESFREQ=None, DATAPOINTS=70, plot=False):
         print("")
         from tqdm import tqdm
         
@@ -469,7 +471,9 @@ class VNA():
             I = np.load(out_path / 'I.npy')
             Q = np.load(out_path / 'Q.npy')
             freqs = np.load(out_path / 'freqs.npy')
-            params, chi2 = fc.complexS21Fit(I=I, Q=Q, freqs=freqs, res_freq=self.entry[channel]['target_freq'], 
+            if RESFREQ != None:
+                RESFREQ = self.entry[channel]['target_freq']
+            params, chi2 = fc.complexS21Fit(I=I, Q=Q, freqs=freqs, RESFREQ=RESFREQ, 
                           output_path=out_path, DATAPOINTS=DATAPOINTS, verbose=True)
                 
             self.entry[channel]['Re[a]'] = params['Re[a]']
@@ -481,13 +485,67 @@ class VNA():
             self.entry[channel]['phi_0'] = params['phi_0']
             self.entry[channel]['reduced_chi2'] = float(chi2)
             
+            if plot:
+                self.plotS21(channel=channel)
         return
-            
-        
+
+
     def plotS21(self, channel):
         extracted_target_path = datapaths.vna_S21 / self.filename / 'extracted_target' / '{:03d}'.format(channel)
         
         fc.complexS21Plot(extracted_target_path)
         
         
+    def plotExtractedTarget(self, axis, label=None, color=None, complex_fit_above=False, channel_index=False, markers=True, only_idx=None):
+        from matplotlib.lines import Line2D
+        # plot roach target sweeps
+        handles = []
         
+        if only_idx == None:
+            entries = self.entry
+        else:
+            entries = [self.entry[i] for i in only_idx]
+        
+        for e in entries:
+            # read one sweep at a time
+            channel = e['channel']
+            x_data_chan = np.load(datapaths.vna_S21 / self.filename / 'extracted_target' /  "{:03d}".format(channel) / "freqs.npy")
+            y_data_chan = np.load(datapaths.vna_S21 / self.filename / 'extracted_target' /  "{:03d}".format(channel) / "mag.npy")
+            
+            '''
+            if flat_at_0db:
+                hist, bin_edges = np.histogram(y_data_chan, bins=70)
+                hist_arg_max = hist.argmax()
+                y_offset = 0.5*(bin_edges[hist_arg_max]+bin_edges[hist_arg_max+1])
+                y_data_chan -= y_offset
+            '''
+            
+            if markers:
+                axis.plot(x_data_chan, y_data_chan, color=color, linestyle='-', linewidth=1, marker='o', markersize=3.5)
+            else:
+                axis.plot(x_data_chan, y_data_chan, color=color, linestyle='solid')
+            
+            # plot the channel index above the correspondend sweep
+            if channel_index:
+                axis.text(x_data_chan[0], y_data_chan[0], str(e['channel']), color=color)
+            
+            if complex_fit_above:
+                try:
+                    nu_linear = np.linspace(x_data_chan[0], x_data_chan[-1], num=200) # linear sample
+                    nu_peack = np.random.normal(e['nu_r'].n, 0.001, 1000) # peak sampling
+                    nu = np.concatenate([nu_linear, nu_peack])
+                    nu = np.sort(nu)
+                    Z = fc.S_21(nu, e['Re[a]'].n, e['Im[a]'].n, e['Q_tot'].n, e['Q_c'].n, e['nu_r'].n, e['phi_0'].n)
+                    mag = 20*np.log10(np.abs(Z))
+                    mag -= mag[0]
+                    '''
+                    if flat_at_0db:
+                        mag -= y_offset
+                    '''
+                    axis.plot(nu, mag, linestyle='solid', color=color, alpha=0.6, linewidth=4)
+                except:
+                    pass
+        
+        if label != None:
+            label = self.label
+        handles.append(Line2D([0], [0], label=label, color=color))

@@ -14,8 +14,8 @@ from . import datapaths
 def overplotTargetSweeps(targets=None, ms2034b_data_list=None, channel_index=False, add_out_of_res_plot=False, complex_fit_above=False, flat_at_0db=True, colormap='coolwarm', markers=True, only_idxs=None):
     from matplotlib import pyplot as plt
     from matplotlib.lines import Line2D
-    from matplotlib import cm
-    cmap = cm.get_cmap(colormap, lut=None)
+    from matplotlib import colormaps as cm
+    cmap = cm.get_cmap(colormap)
     
     fig = plt.figure()
     fig.set_size_inches(7, 7)
@@ -67,7 +67,7 @@ def overplotTargetSweeps(targets=None, ms2034b_data_list=None, channel_index=Fal
                     if complex_fit_above:
                         try:
                             nu_linear = np.linspace(x_data_chan[0], x_data_chan[-1], num=200) # linear sample
-                            nu_peack = np.random.normal(e['nu_r'].n, 0.001, 1000) # peak sample
+                            nu_peack = np.random.normal(e['nu_r'].n, 0.001, 1000) # peak sampling
                             nu = np.concatenate([nu_linear, nu_peack])
                             nu = np.sort(nu)
                             Z = S_21(nu, e['Re[a]'].n, e['Im[a]'].n, e['Q_tot'].n, e['Q_c'].n, e['nu_r'].n, e['phi_0'].n)
@@ -108,8 +108,8 @@ def overplotTargetSweeps(targets=None, ms2034b_data_list=None, channel_index=Fal
 def overplotTargetCircles(targets=None, ms2034b_data_list=None, complex_fit_above=False, colormap='coolwarm', markers=True, only_idxs=None, force_raw_data=False):
     from matplotlib import pyplot as plt
     from matplotlib.lines import Line2D
-    from matplotlib import cm
-    cmap = cm.get_cmap(colormap, lut=None)
+    from matplotlib import colormaps as cm
+    cmap = cm.get_cmap(colormap)
     
     fig = plt.figure(figsize=(7,7))
     ax0 = fig.gca()
@@ -1104,8 +1104,8 @@ def electrical_phase_responsivity_linear_fit(nu_r, base_nu_r, T, T_c, N_0, V_abs
             axis.ticklabel_format(axis='both', style='sci', useMathText=True, scilimits=(0,0))
             axis.tick_params(axis='both', which='both', direction='in', bottom=True, left=True, top=True, right=True)
             
-            axis.set_xlabel("Quasiparticle number $\delta N_{qp}$")
-            axis.set_ylabel("Relative resonant frequency shift $\delta x$")
+            axis.set_xlabel("$N_{qp}$")
+            axis.set_ylabel("$\delta x$")
             
             axis.errorbar(unp.nominal_values(N_qp), [d.n for d in delta_x], yerr=[d.s for d in delta_x], xerr=unp.std_devs(N_qp), color=color, linestyle='', fmt='o', capsize=2, markersize=3)
             axis.plot(unp.nominal_values(N_qp), linear_function(unp.nominal_values(N_qp), result.params['slope'].value, result.params['intercept'].value), color=color, label=label)
@@ -1187,7 +1187,7 @@ def electrical_amplitude_responsivity_linear_fit(Q_i, T, T_c, N_0, V_abs, label=
             axis.ticklabel_format(axis='both', style='sci', useMathText=True, scilimits=(0,0))
             axis.tick_params(axis='both', which='both', direction='in', bottom=True, left=True, top=True, right=True)
             
-            axis.set_xlabel("Quasiparticle number $\delta N_{qp}$")
+            axis.set_xlabel("$N_{qp}$")
             axis.set_ylabel("$1/Q_i$")
             
             axis.errorbar(unp.nominal_values(N_qp), [Q.n for Q in one_over_Q_i], yerr=[Q.s for Q in one_over_Q_i], xerr=unp.std_devs(N_qp), color=color, linestyle='', fmt='o', capsize=2, markersize=3)
