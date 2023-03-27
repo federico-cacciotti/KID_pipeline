@@ -487,7 +487,7 @@ def jointTargetSweeps(targets, exclude_channels=[[]], flat_at_0db=False):
 '''
                 complexS21Fit function
 '''
-def complexS21Fit(I, Q, freqs, output_path, RESFREQ=None, DATAPOINTS=100, verbose=False, force_emcee=False):
+def complexS21Fit(I, Q, freqs, output_path, RESFREQ=None, DATAPOINTS=100, verbose=False, force_emcee=False, fitting_method='leastsq'):
     '''
     Returns the complex fit of the S21 transfer function
 
@@ -570,9 +570,9 @@ def complexS21Fit(I, Q, freqs, output_path, RESFREQ=None, DATAPOINTS=100, verbos
     I = A*np.cos(phase)
     Q = A*np.sin(phase)
     
-    # errors on I and Q data is 1%
-    IErr = I*0.01
-    QErr = Q*0.01
+    # errors on I and Q data is 2%
+    IErr = I*0.02
+    QErr = Q*0.02
     
     # compute the center coordinates by averaging max and min data values
     I_m, I_M = I[ARG_MIN:ARG_MAX].min(), I[ARG_MIN:ARG_MAX].max()
@@ -667,7 +667,8 @@ def complexS21Fit(I, Q, freqs, output_path, RESFREQ=None, DATAPOINTS=100, verbos
         if Q_i<0.0:
             Q_i = 1.0e7 # this should be a sufficiently high value
     except ZeroDivisionError:
-        Q_i = 1.0e7 # this should be a sufficiently high value
+        print("ZeroDivisionError while initializing Qi from phase fit.")
+        Q_i = 1.0e8 # this should be a sufficiently high value
         pass
         
     # let's compute phi0
@@ -702,7 +703,7 @@ def complexS21Fit(I, Q, freqs, output_path, RESFREQ=None, DATAPOINTS=100, verbos
     params.add('Q_i', value=Q_i, min=0.0, max=1.0e12)
     params.add('Q_tot', expr='(Q_c*Q_i)/(Q_c+Q_i)')
     params.add('nu_r', value=nu_rPhFit, min=nu_rPhFit*0.8, max=nu_rPhFit*1.2)
-    params.add('phi_0', value=phi_0, min=0.0, max=2.0*np.pi)
+    params.add('phi_0', value=0.0, min=-np.pi, max=np.pi)
     params.add('tau', value=0.0, vary=False)
     
     z_data = I[ARG_MIN:ARG_MAX]+1j*Q[ARG_MIN:ARG_MAX]
@@ -710,14 +711,33 @@ def complexS21Fit(I, Q, freqs, output_path, RESFREQ=None, DATAPOINTS=100, verbos
     freqs = freqs[ARG_MIN:ARG_MAX]
     
     # try a leastsquare fit otherwise an MCMC
-    try:
-        out = minimize(complexResiduals, params, args=(freqs, z_data, z_err), method='leastsq', max_nfev=1000)
+    if not force_emcee:
+        out = minimize(complexResiduals, params, args=(freqs, z_data, z_err), method=fitting_method, max_nfev=10000)
         if verbose:
             print("\n\tcomplex fit results")
             print("\t"+fit_report(out))
         file = open(output_path / "log.txt","a")
         file.write(fit_report(out))
         file.close()
+    else:
+        emcee_kws = dict(steps=10000, burn=7000, nwalkers=200, progress=True)
+        out = minimize(complexResiduals, params, args=(freqs, z_data, z_err), method='emcee', **emcee_kws)
+        if verbose:
+            print("\n\tcomplex fit results")
+            print("\t"+fit_report(out))
+        file = open(output_path / "log.txt","a")
+        file.write(fit_report(out))
+        file.close()
+    
+    if out.errorbars == False:
+        Rea = ufloat(out.params['Rea'].value, np.nan)*IQ_MAX
+        Ima = ufloat(out.params['Ima'].value, np.nan)*IQ_MAX
+        Q_c = ufloat(out.params['Q_c'].value, np.nan)
+        Q_i = ufloat(out.params['Q_i'].value, np.nan)
+        Q_tot = ufloat(out.params['Q_tot'].value, np.nan)
+        nu_r = ufloat(out.params['nu_r'].value, np.nan)
+        phi_0 = ufloat(out.params['phi_0'].value, np.nan)
+    else:
         Rea = ufloat(out.params['Rea'].value, out.params['Rea'].stderr)*IQ_MAX
         Ima = ufloat(out.params['Ima'].value, out.params['Ima'].stderr)*IQ_MAX
         Q_c = ufloat(out.params['Q_c'].value, out.params['Q_c'].stderr)
@@ -725,35 +745,9 @@ def complexS21Fit(I, Q, freqs, output_path, RESFREQ=None, DATAPOINTS=100, verbos
         Q_tot = ufloat(out.params['Q_tot'].value, out.params['Q_tot'].stderr)
         nu_r = ufloat(out.params['nu_r'].value, out.params['nu_r'].stderr)
         phi_0 = ufloat(out.params['phi_0'].value, out.params['phi_0'].stderr)
-    except: 
-        if force_emcee:
-            emcee_kws = dict(steps=5500, burn=500, nwalkers=100, progress=True)
-            out = minimize(complexResiduals, params, args=(freqs, z_data, z_err), method='emcee', **emcee_kws)
-            if verbose:
-                print("\n\tcomplex fit results")
-                print("\t"+fit_report(out))
-            file = open(output_path / "log.txt","a")
-            file.write(fit_report(out))
-            file.close()
-            Rea = ufloat(out.params['Rea'].value, out.params['Rea'].stderr)
-            Ima = ufloat(out.params['Ima'].value, out.params['Ima'].stderr)
-            Q_tot = ufloat(out.params['Q_tot'].value, out.params['Q_tot'].stderr)
-            Q_c = ufloat(out.params['Q_c'].value, out.params['Q_c'].stderr)
-            nu_r = ufloat(out.params['nu_r'].value, out.params['nu_r'].stderr)
-            phi_0 = ufloat(out.params['phi_0'].value, out.params['phi_0'].stderr)
-        pass
     
     
-    '''
-    # compute the Q_i value
-    Q_i = Q_c*Q_tot/(Q_c-Q_tot)
     
-    if verbose:
-        print("\nQ_i: {:uf}".format(Q_i))
-    file = open(output_path / "log.txt","a")
-    file.write("\nQ_i: {:uf}".format(Q_i))
-    file.close()
-    '''
 
     # save data into .npy files
     np.save(output_path / "I_prime.npy", I*IQ_MAX)
@@ -1115,7 +1109,7 @@ def electrical_phase_responsivity_linear_fit(nu_r, base_nu_r, T, T_c, N_0, V_abs
             return result.params
     except ValueError:
         print("Cannot find fit parameters.")
-        return
+        raise ValueError()
     
     
     

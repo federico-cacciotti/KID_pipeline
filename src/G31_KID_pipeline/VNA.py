@@ -440,7 +440,7 @@ class VNA():
         plt.show()
     
     
-    def fitS21(self, channel, RESFREQ=None, DATAPOINTS=70, plot=False):
+    def fitS21(self, channel, RESFREQ=None, DATAPOINTS=70, plot=False, force_emcee=False, fitting_method='leastsq'):
         print("")
         from tqdm import tqdm
         
@@ -454,7 +454,7 @@ class VNA():
                     Q = np.load(out_path / 'Q.npy')
                     freqs = np.load(out_path / 'freqs.npy')
                     params, chi2 = fc.complexS21Fit(I=I, Q=Q, freqs=freqs, res_freq=e['target_freq'], 
-                                           output_path=out_path, DATAPOINTS=DATAPOINTS)
+                                           output_path=out_path, DATAPOINTS=DATAPOINTS, fitting_method=fitting_method)
                     
                     e['Re[a]'] = params['Re[a]']
                     e['Im[a]'] = params['Im[a]']
@@ -474,7 +474,7 @@ class VNA():
             if RESFREQ != None:
                 RESFREQ = self.entry[channel]['target_freq']
             params, chi2 = fc.complexS21Fit(I=I, Q=Q, freqs=freqs, RESFREQ=RESFREQ, 
-                          output_path=out_path, DATAPOINTS=DATAPOINTS, verbose=True)
+                          output_path=out_path, DATAPOINTS=DATAPOINTS, force_emcee=force_emcee, verbose=True, fitting_method=fitting_method)
                 
             self.entry[channel]['Re[a]'] = params['Re[a]']
             self.entry[channel]['Im[a]'] = params['Im[a]']
@@ -496,15 +496,15 @@ class VNA():
         fc.complexS21Plot(extracted_target_path)
         
         
-    def plotExtractedTarget(self, axis, label=None, color=None, complex_fit_above=False, channel_index=False, markers=True, only_idx=None):
+    def plotExtractedTarget(self, axis, label=None, color=None, complex_fit_above=False, channel_index=False, markers=True, only_idxs=None):
         from matplotlib.lines import Line2D
         # plot roach target sweeps
         handles = []
         
-        if only_idx == None:
+        if only_idxs == None:
             entries = self.entry
         else:
-            entries = [self.entry[i] for i in only_idx]
+            entries = [self.entry[i] for i in only_idxs]
         
         for e in entries:
             # read one sweep at a time

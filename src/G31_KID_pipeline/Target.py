@@ -93,7 +93,7 @@ class Target():
                     
         return out_of_res_number
 
-    def fitS21(self, channel, RESFREQ=None, DATAPOINTS=70, plot=False):
+    def fitS21(self, channel, RESFREQ=None, DATAPOINTS=70, plot=False, force_emcee=False, fitting_method='leastsq'):
         print("")
         from tqdm import tqdm
         
@@ -111,8 +111,8 @@ class Target():
                     out_path = datapaths.target_S21 / self.filename / "{:03d}".format(c)
                     
                     try:
-                        params, chi2 = fc.complexS21Fit(I=I, Q=Q, freqs=freqs, 
-                                               output_path=out_path, DATAPOINTS=DATAPOINTS)
+                        params, chi2 = fc.complexS21Fit(I=I, Q=Q, freqs=freqs, output_path=out_path, DATAPOINTS=DATAPOINTS,
+                                                        force_emcee=force_emcee, fitting_method=fitting_method)
                         
                         e['Re[a]'] = params['Re[a]']
                         e['Im[a]'] = params['Im[a]']
@@ -132,8 +132,8 @@ class Target():
             freqs = np.load(path / "{:03d}".format(channel) / "freqs.npy", allow_pickle=True)
             out_path = datapaths.target_S21 / self.filename / "{:03d}".format(channel)
             
-            params, chi2 = fc.complexS21Fit(I=I, Q=Q, freqs=freqs, RESFREQ=RESFREQ, 
-                          output_path=out_path, DATAPOINTS=DATAPOINTS, verbose=True)
+            params, chi2 = fc.complexS21Fit(I=I, Q=Q, freqs=freqs, RESFREQ=RESFREQ, output_path=out_path, DATAPOINTS=DATAPOINTS, 
+                                            verbose=True, force_emcee=force_emcee, fitting_method=fitting_method)
                 
             self.entry[channel]['Re[a]'] = params['Re[a]']
             self.entry[channel]['Im[a]'] = params['Im[a]']
