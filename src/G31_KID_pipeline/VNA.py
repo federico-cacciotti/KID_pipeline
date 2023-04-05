@@ -8,7 +8,7 @@ from glob import glob
             VNA class
 '''
 class VNA():
-    def __init__(self, filename, temperature=None, build_dataset=False, remove_baseline=True, label=None):
+    def __init__(self, filename, temperature=None, build_dataset=False, remove_baseline=False, label=None):
         '''
         Class for reading the ROACH VNA sweeps.
 
@@ -34,7 +34,7 @@ class VNA():
 
         '''
         print('++++++++++++++++++++++++++++++++++++++++++++++++')
-        print('Reding VNA sweep {:s}...'.format(filename))
+        print('Reading VNA sweep {:s}...'.format(filename))
         self.filename = filename
         self.temperature = temperature
         self.entry = []
@@ -47,10 +47,27 @@ class VNA():
         
         if not (datapaths.vna_S21 / self.filename).exists() or build_dataset:
             fc.buildS21Dataset(self)
+            
+        # load data to memory
+        self.loadData()
         
+        # here check if the baseline has been already calculated
+        if (datapaths.vna_S21 / self.filename / 'mag_baseline.npy').exists():
+            print("Found an amplitude baseline file.")
+            self.mag_baseline = np.load(datapaths.vna_S21 / self.filename / 'mag_baseline.npy')
+        else:
+            print("Not found an amplitude baseline file.")
+            remove_baseline = True
+        if (datapaths.vna_S21 / self.filename / 'phase_baseline.npy').exists():
+            print("Found a phase baseline file.")
+            self.phase_baseline = np.load(datapaths.vna_S21 / self.filename / 'phase_baseline.npy')
+        else:
+            print("Not found a phase baseline file.")
+            remove_baseline = True
+            
         # remove baseline
         if remove_baseline:
-            self.removeBaseline()
+            self.mag_baseline, self.phase_baseline = self.removeBaselines()
             
         # check for extracted target and load data
         if (datapaths.vna_S21 / self.filename / 'extracted_target').exists():
@@ -63,43 +80,9 @@ class VNA():
             self.label = filename
         else:
             self.label = label
-            
-            
-    def removeBaseline(self, mag_filt='airp_lss', phase_detrend=True, phase_filt='lowpass_cosine'):
-        '''
-        Remove the baseline of the VNA sweep in order to find resonances
-
-        Parameters
-        ----------
-        mag_filt : string, optional
-            Filter algorithm for the amplitude data. It can be:
-                - 'lowpass_cosine' for a low pass filter algorithm;
-                - 'a_lss' for an asymmetric leas square smoothing algorithm;
-                - 'airp_lss' for an adaptive iteratively reweighted penalized
-                    least square smoothing algorithm.
-            default is 'airp_lss'.
-        phase_detrend : boolean, optional
-            Linear detrend if True. The default is True.
-        phase_filt : string, optional
-            Same description as the mag_filt parameter. 'lowpass_cosine' works
-            better. The default is 'lowpass_cosine'.
-
-        Returns
-        -------
-        mag : numpy array
-            Filtered amplitude.
-        phase : numpy arra
-            Filtered phase.
-
-        '''
-        if mag_filt==None:
-            mag_filt = 'None'
-        if phase_filt==None:
-            phase_filt = 'None'
-        print("Removing baselines...")
-        print('Magnitude baseline correction algorithm: '+mag_filt)
-        print('Phase baseline correction algorithm: '+phase_filt)
     
+    
+    def loadData(self):
         # how many channels?
         n_chan = self.bb_freqs.size
         
@@ -154,45 +137,14 @@ class VNA():
         self.I = I
         self.Q = Q
         
-        # phase detrend
-        if phase_detrend:
-            from scipy.signal import detrend
-            detrend(phase, axis=-1, type='linear', overwrite_data=True)
-            phase -= phase[0]
-        
-        # mag filter
-        if mag_filt == 'lowpass_cosine':
-            sweep_step = 1.25 # kHz
-            smoothing_scale = 2500.0 # kHz
-            filtered = fc.lowpass_cosine(mag, sweep_step, 1.0/smoothing_scale, 0.1 * (1.0/smoothing_scale))
-            mag -= filtered    
             
-        if mag_filt == 'a_lss':
-            baseline = fc.asymmetric_least_squares_smoothing(data=mag, lam=1e6, p=8e-4, N_iter=5)
-            mag -= baseline
             
-        if mag_filt == 'airp_lss':
-            baseline = fc.adaptive_iteratively_reweighted_penalized_least_squares_smoothing(data=mag, lam=1e6, N_iter=5)
-            mag -= baseline
-        
-        
-        # phase filter
-        if phase_filt == 'lowpass_cosine':
-            sweep_step = 1.25 # kHz
-            smoothing_scale = 2500.0 # kHz
-            filtered = fc.lowpass_cosine(phase, sweep_step, 1./smoothing_scale, 0.1 * (1.0/smoothing_scale))
-            phase -= filtered
-    
-        return mag, phase
-    
-    def plotSweep(self, xlim=None, mag_filt='airp_lss', phase_filt='lowpass_cosine', phase_detrend=True):
+    def removeBaselines(self, mag_filt='airp_lss', phase_detrend=True, phase_filt='lowpass_cosine'):
         '''
-        This function plots both the amplitude and phase data of the VNA sweep.
+        Remove the baseline of the VNA sweep in order to find resonances
 
         Parameters
         ----------
-        xlim : tuple, optional
-            x axis limits. The default is [0, 700].
         mag_filt : string, optional
             Filter algorithm for the amplitude data. It can be:
                 - 'lowpass_cosine' for a low pass filter algorithm;
@@ -200,9 +152,70 @@ class VNA():
                 - 'airp_lss' for an adaptive iteratively reweighted penalized
                     least square smoothing algorithm.
             default is 'airp_lss'.
+        phase_detrend : boolean, optional
+            Linear detrend if True. The default is True.
         phase_filt : string, optional
             Same description as the mag_filt parameter. 'lowpass_cosine' works
             better. The default is 'lowpass_cosine'.
+
+        Returns
+        -------
+        mag : numpy array
+            Filtered amplitude.
+        phase : numpy arra
+            Filtered phase.
+
+        '''
+        if mag_filt==None:
+            mag_filt = 'None'
+        if phase_filt==None:
+            phase_filt = 'None'
+        print("Removing baselines...")
+        print('Magnitude baseline correction algorithm: '+mag_filt)
+        print('Phase baseline correction algorithm: '+phase_filt)
+    
+    
+        # phase detrend
+        if phase_detrend:
+            from scipy.signal import detrend
+            detrend(self.phase, axis=-1, type='linear', overwrite_data=True)
+            self.phase -= self.phase[0]
+            
+        
+        # mag filter
+        if mag_filt == 'lowpass_cosine':
+            sweep_step = 1.25 # kHz
+            smoothing_scale = 2500.0 # kHz
+            self.mag_baseline = fc.lowpass_cosine(self.mag, sweep_step, 1.0/smoothing_scale, 0.1 * (1.0/smoothing_scale)) 
+            
+        if mag_filt == 'a_lss':
+            self.mag_baseline = fc.asymmetric_least_squares_smoothing(data=self.mag, lam=1e6, p=8e-4, N_iter=5)
+            
+        if mag_filt == 'airp_lss':
+            self.mag_baseline = fc.adaptive_iteratively_reweighted_penalized_least_squares_smoothing(data=self.mag, lam=1e6, N_iter=5)
+        
+        
+        # phase filter
+        if phase_filt == 'lowpass_cosine':
+            sweep_step = 1.25 # kHz
+            smoothing_scale = 2500.0 # kHz
+            self.phase_baseline = fc.lowpass_cosine(self.phase, sweep_step, 1./smoothing_scale, 0.1 * (1.0/smoothing_scale))
+            self.phase -= self.phase_baseline
+        
+            # save baselines to file
+        np.save(datapaths.vna_S21 / self.filename / 'mag_baseline.npy', self.mag_baseline)
+        np.save(datapaths.vna_S21 / self.filename / 'phase_baseline.npy', self.phase_baseline)
+    
+        return self.mag, self.phase
+    
+    def plotSweep(self, xlim=None):
+        '''
+        This function plots both the amplitude and phase data of the VNA sweep.
+
+        Parameters
+        ----------
+        xlim : tuple, optional
+            x axis limits. The default is [0, 700].
 
         Returns
         -------
@@ -210,7 +223,6 @@ class VNA():
 
         '''
         print("Plot VNA sweep...")
-        mag, phase = self.removeBaseline(mag_filt=mag_filt, phase_filt=phase_filt, phase_detrend=phase_detrend)
         
         from matplotlib import pyplot as plt
         fig = plt.figure()
@@ -219,8 +231,8 @@ class VNA():
         ax0 = plt.subplot(211)
         ax1 = plt.subplot(212, sharex=ax0)
         
-        ax0.plot(self.freqs, mag, color='black', linewidth=1)
-        ax1.plot(self.freqs, phase, color='black', linewidth=1)
+        ax0.plot(self.freqs, self.mag-self.mag_baseline, color='black', linewidth=1)
+        ax1.plot(self.freqs, self.phase-self.phase_baseline, color='black', linewidth=1)
         
         ax0.grid(linestyle='-', alpha=0.5)
         ax0.set_xlim([self.freqs[0], self.freqs[-1]])
@@ -278,7 +290,7 @@ class VNA():
     
         
         
-    def findPeaks(self, xlim=[0, 700], mag_filt='airp_lss', phase_filt='lowpass_cosine', peak_width=(1.0, 150.0), peak_height=1.0, peak_prominence=(1.0, 30.0)):
+    def findPeaks(self, xlim=[0, 700], peak_width=(1.0, 150.0), peak_height=1.0, peak_prominence=(1.0, 30.0)):
         '''
         A function that searh for resonances in the VNA sweep
 
@@ -286,16 +298,6 @@ class VNA():
         ----------
         xlim : tuple, optional
             x axis limits. The default is [0, 700].
-        mag_filt : string, optional
-            Filter algorithm for the amplitude data. It can be:
-                - 'lowpass_cosine' for a low pass filter algorithm;
-                - 'a_lss' for an asymmetric leas square smoothing algorithm;
-                - 'airp_lss' for an adaptive iteratively reweighted penalized
-                    least square smoothing algorithm.
-            default is 'airp_lss'.
-        phase_filt : string, optional
-            Same description as the mag_filt parameter. 'lowpass_cosine' works
-            better. The default is 'lowpass_cosine'.
         peak_width : float of tuple, optional
             Minimum width of peaks or range of values. The default is 
             (1.0, 150.0).
@@ -304,7 +306,7 @@ class VNA():
         peak_prominence : float or tuple, optional
             Minimum prominence of peaks or range of values. The default is (1.0, 30.0).
             
-        For other information see scipy.signal.find_peaks() help.
+        For other information see scipy.signal.find_peaks() for help.
 
         Returns
         -------
@@ -316,7 +318,7 @@ class VNA():
         '''
         print(self.filename+': peak finding...')
         
-        mag, phase = self.removeBaseline(mag_filt, phase_filt)
+        mag, phase = self.mag-self.mag_filter, self.phase-self.phase_baseline
         
         # peak finding
         from scipy.signal import find_peaks
@@ -440,7 +442,7 @@ class VNA():
         plt.show()
     
     
-    def fitS21(self, channel, RESFREQ=None, DATAPOINTS=70, plot=False, force_emcee=False, fitting_method='leastsq'):
+    def fitS21(self, channel, RESFREQ=None, DATAPOINTS=None, plot=False, force_emcee=False, fitting_method='leastsq'):
         print("")
         from tqdm import tqdm
         
