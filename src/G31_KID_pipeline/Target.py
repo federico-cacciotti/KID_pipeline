@@ -7,9 +7,9 @@ import sys
             Target class
 '''
 class Target():
-    def __init__(self, filename, temperature=None, build_dataset=False, label=None, out_of_resonance_parameter=2.0, find_double=False):
+    def __init__(self, filename, temperature=None, build_dataset=False, label=None, out_of_resonance_parameter=2.0, find_multiple_peaks=True):
         print("+ + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + +")
-        print('Reding target sweep {:s}...'.format(filename))
+        print('Reading target sweep {:s}...'.format(filename))
         self.filename = filename
         self.temperature = temperature
         
@@ -47,7 +47,8 @@ class Target():
                                'channel': channel,
                                'depth': max(mag)-min(mag),
                                'is_out_of_res': False,
-                               'number_of_peaks': 0,
+                               'number_of_peaks': None,
+                               'peaks': None,
                                'Re[a]': None, 
                                'Im[a]': None, 
                                'Q_tot': None, 
@@ -61,14 +62,14 @@ class Target():
         
         self.readS21Data()
         
-        if find_double:
-            self.findDouble()
+        if find_multiple_peaks:
+            self.findMultiplePeaks()
         print("+ + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + +")
     
 
     # filter out of resonance tones refusing them, sigma_mult allows to refuse out of resonance tones
     def filterOutOfResTones(self, std_mult=3.0):
-        print("\nChecking for out of resonance tones...")
+        print("\nLooking for out of resonance tones...")
         
         depths = [self.entry[i]['depth'] for i in range(self.entries)]
         average_depth = np.average(depths)
@@ -93,7 +94,7 @@ class Target():
                     
         return out_of_res_number
 
-    def fitS21(self, channel, RESFREQ=None, DATAPOINTS=70, plot=False, force_emcee=False, fitting_method='leastsq'):
+    def fitS21(self, channel, RESFREQ=None, DATAPOINTS=None, plot=False, fitting_method='leastsq'):
         print("")
         from tqdm import tqdm
         
@@ -112,7 +113,7 @@ class Target():
                     
                     try:
                         params, chi2 = fc.complexS21Fit(I=I, Q=Q, freqs=freqs, output_path=out_path, DATAPOINTS=DATAPOINTS,
-                                                        force_emcee=force_emcee, fitting_method=fitting_method)
+                                                        fitting_method=fitting_method)
                         
                         e['Re[a]'] = params['Re[a]']
                         e['Im[a]'] = params['Im[a]']
@@ -133,7 +134,7 @@ class Target():
             out_path = datapaths.target_S21 / self.filename / "{:03d}".format(channel)
             
             params, chi2 = fc.complexS21Fit(I=I, Q=Q, freqs=freqs, RESFREQ=RESFREQ, output_path=out_path, DATAPOINTS=DATAPOINTS, 
-                                            verbose=True, force_emcee=force_emcee, fitting_method=fitting_method)
+                                            verbose=True, fitting_method=fitting_method)
                 
             self.entry[channel]['Re[a]'] = params['Re[a]']
             self.entry[channel]['Im[a]'] = params['Im[a]']
@@ -174,8 +175,8 @@ class Target():
             print("\nComplex fit parameters not available for {:d}/{:d} resonances.".format(known_resonaces_not_fitted, self.entries-self.out_of_res))
     
     
-    def findDouble(self):
-        print("\nSearching for double resonances...")
+    def findMultiplePeaks(self):
+        print("\nSearching for multiple peaks...")
         double_found = False
         
         from scipy.signal import find_peaks
@@ -188,18 +189,19 @@ class Target():
                 y_data_chan = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "mag.npy")
             
                 peaks, info = find_peaks(-y_data_chan, width=1, height=2.0, prominence=2.0)
-                
                 n_peaks = len(peaks)
                 
                 if n_peaks>1:
-                    print("\tFound ", n_peaks, " resonances in channel ", channel)
+                    print("\tFound ", n_peaks, " peaks in channel ", channel)
                 
                 e['number_of_peaks'] = n_peaks
+                e['peaks'] = [peaks, info]
+                
                 if n_peaks>1:
                     double_found = True
         
         if not double_found:
-            print("\tNo double resonance found!")
+            print("\tNo multiple peaks detected.")
     
     
     def entry_parameters_to_table(self):
