@@ -487,7 +487,7 @@ def jointTargetSweeps(targets, exclude_channels=[[]], flat_at_0db=False):
 '''
                 complexS21Fit function
 '''
-def complexS21Fit(I, Q, freqs, output_path, RESFREQ=None, DATAPOINTS=100, verbose=False, force_emcee=False, fitting_method='leastsq'):
+def complexS21Fit(I, Q, freqs, output_path, RESFREQ=None, DATAPOINTS=None, verbose=False, fitting_method='leastsq'):
     '''
     Returns the complex fit of the S21 transfer function
 
@@ -519,8 +519,12 @@ def complexS21Fit(I, Q, freqs, output_path, RESFREQ=None, DATAPOINTS=100, verbos
     from lmfit import Parameters, minimize, fit_report
     from uncertainties import ufloat
     
-    # DATAPOINTS: number of left and right datapoints with respect to the resonance frequency 
-    # to which the complex fit is computed
+    # number of resonance FWHM datapoints around the resonant frequency to be considered for the fit 
+    N_FWHM = 16.0
+    
+    if DATAPOINTS == None:
+        # take 80% of the datapoint for the fit if not given
+        OPTIMAL_DATAPOINTS = int(0.8*freqs.size)
     
     # normalization of I and Q to max()
     IQ_MAX = np.max([np.abs(I).max(), np.abs(Q).max()])
@@ -540,20 +544,88 @@ def complexS21Fit(I, Q, freqs, output_path, RESFREQ=None, DATAPOINTS=100, verbos
     A = np.sqrt(I**2.0 + Q**2.0)
     phase = np.arctan2(Q, I)
     
-    # a stupid guess of the resonant frequency if not given
-    if RESFREQ != None:
+    # a good guess of the resonant frequency may be found by a peak-finding algorithm looking for the closest peak to the center of the sweep
+    # find peaks in the sweep and select the one closer to the sweep center
+    from scipy.signal import find_peaks
+    peaks, peaks_info = find_peaks(map_values(-A), width=3, distance=3, prominence=0.05)
+    if verbose:
+        print("{:d} peak(s) detected.".format(len(peaks)))
+    
+    if RESFREQ == None:
+        if len(peaks) > 1:
+            if verbose:
+                print("Selecting the closer one to the sweep center.")
+            arg_central_frequency = int(freqs.size*0.5)
+            arg_distance_from_center = peaks - arg_central_frequency
+            # selecting the closest one
+            arg_peak_resfreq = np.abs(arg_distance_from_center).argmin()
+            ARG_RESFREQ = peaks[arg_peak_resfreq]
+            
+            # optimal number of datapoints is given by half of the minimum separation between the (at least) two resonances
+            if verbose:
+                print("Computing the optimal value of datapoints...")
+            if arg_peak_resfreq == 0:
+                LEFT_DATAPOINTS = ARG_RESFREQ
+                if verbose:
+                    print("No optimal limit on left datapoints. Setting it to {:d}".format(LEFT_DATAPOINTS))
+            else:
+                LEFT_DATAPOINTS = int(0.5*(peaks[arg_peak_resfreq]-peaks[arg_peak_resfreq-1]))
+                if verbose:
+                    print("Optimal left datapoints: {:d}".format(LEFT_DATAPOINTS))
+            
+            if arg_peak_resfreq == peaks.size-1:
+                RIGHT_DATAPOINTS = freqs.size-ARG_RESFREQ
+                if verbose:
+                    print("No optimal limit on right datapoints. Setting it to {:d}".format(RIGHT_DATAPOINTS))
+            else:
+                RIGHT_DATAPOINTS = int(0.5*(peaks[arg_peak_resfreq+1]-peaks[arg_peak_resfreq]))
+                if verbose:
+                    print("Optimal right datapoints: {:d}".format(RIGHT_DATAPOINTS))
+                
+            OPTIMAL_DATAPOINTS = 2*min(LEFT_DATAPOINTS, RIGHT_DATAPOINTS)
+            
+            if DATAPOINTS == None:
+                DATAPOINTS = int(N_FWHM * peaks_info['widths'][arg_peak_resfreq])
+            
+        elif len(peaks) == 1:
+            ARG_RESFREQ = peaks[0]
+            if DATAPOINTS == None:
+                DATAPOINTS = int(N_FWHM * peaks_info['widths'][0])
+        
+        else:
+            if verbose:
+                print("find_peaks does not find any peak. Selecting min(A) as a resonant frequency guess.")
+            ARG_RESFREQ = np.argmin(A)
+            
+            if DATAPOINTS == None:
+                DATAPOINTS = int(0.8*freqs.size)
+            
+    else:
         try:
             ARG_RESFREQ = np.argwhere(freqs >= RESFREQ)[0][0]
-            RESFREQ = freqs[ARG_RESFREQ]
+            if DATAPOINTS == None:
+                DATAPOINTS = int(0.8*freqs.size)
+                
         except IndexError: 
             print('Given value of RESFREQ is out of bounds. Setting res_feq to min(A).')
-    else:
-        #ARG_RESFREQ = np.argmin(A[int(A.size*0.33):int(A.size*0.66)]) + int(A.size*0.33)
-        ARG_RESFREQ = np.argmin(A)
-        RESFREQ = freqs[ARG_RESFREQ]
+            ARG_RESFREQ = np.argmin(A) 
+            
     
+    if OPTIMAL_DATAPOINTS < DATAPOINTS:
+        if verbose:
+            print("Warning: input datapoints exceed the optimal value!")
+            print("Setting DATAPOINTS to its optimal value.")
+        DATAPOINTS = OPTIMAL_DATAPOINTS
+        
+    if verbose:
+        print("DATAPOINTS: {:d}".format(DATAPOINTS))
+    
+    RESFREQ = freqs[ARG_RESFREQ]
+    
+    # now check the number of datapoint to be considered for the fit procedure
     ARG_MIN = ARG_RESFREQ-int(0.5*DATAPOINTS)
     ARG_MAX = ARG_RESFREQ+int(0.5*DATAPOINTS)
+    
     # check if there are enough datapoints at the left of the resonant frequency
     if ARG_MIN < 0:
         ARG_MIN = 0
@@ -563,16 +635,17 @@ def complexS21Fit(I, Q, freqs, output_path, RESFREQ=None, DATAPOINTS=100, verbos
         
     
     # removing the cable delay
-    tau = 0.05 # microsec
+    #tau = 0.05 # microsec --> in the dilution refrigerator!
+    tau = 0.08 # microsec --> in the MISTRAL cryostat!
     phase += 2.0*np.pi*tau*freqs
     phase -= int(phase[0]/np.pi)*np.pi
     phase = np.unwrap(phase)
     I = A*np.cos(phase)
     Q = A*np.sin(phase)
     
-    # errors on I and Q data is 2%
-    IErr = I*0.02
-    QErr = Q*0.02
+    # errors on I and Q data is 5%
+    IErr = I*0.05 + np.ones(I.size)*0.05
+    QErr = Q*0.05 + np.ones(Q.size)*0.05
     
     # compute the center coordinates by averaging max and min data values
     I_m, I_M = I[ARG_MIN:ARG_MAX].min(), I[ARG_MIN:ARG_MAX].max()
@@ -711,7 +784,7 @@ def complexS21Fit(I, Q, freqs, output_path, RESFREQ=None, DATAPOINTS=100, verbos
     freqs = freqs[ARG_MIN:ARG_MAX]
     
     # try a leastsquare fit otherwise an MCMC
-    if not force_emcee:
+    if fitting_method != 'emcee':
         out = minimize(complexResiduals, params, args=(freqs, z_data, z_err), method=fitting_method, max_nfev=10000)
         if verbose:
             print("\n\tcomplex fit results")
@@ -1035,9 +1108,9 @@ def electrical_phase_responsivity_linear_fit(nu_r, base_nu_r, T, T_c, N_0, V_abs
 
     Parameters
     ----------
-    nu_r : numpy array
+    nu_r : (u)numpy array
         resonant frequencies in MHz.
-    base_nu_r : float
+    base_nu_r : (u)float
         base resonant frequency in MHz.
     T : numpy array
         sweep temperatures in K.
@@ -1062,6 +1135,12 @@ def electrical_phase_responsivity_linear_fit(nu_r, base_nu_r, T, T_c, N_0, V_abs
     '''
     from lmfit import Minimizer, Parameters
     from uncertainties import ufloat, unumpy as unp
+    
+    # check if the function parameters are ufloat variables
+    from uncertainties.core import Variable as uVar
+    if type(base_nu_r) != uVar:
+        base_nu_r = ufloat(base_nu_r, 1.0e-3)
+    
     
     # converts lists to np arrays
     nu0 = ufloat(base_nu_r.n, base_nu_r.s)
@@ -1089,8 +1168,8 @@ def electrical_phase_responsivity_linear_fit(nu_r, base_nu_r, T, T_c, N_0, V_abs
     
     # linear fit
     params = Parameters()
-    params.add('slope', value=(min(delta_x).n-max(delta_x).n)/(max(unp.nominal_values(N_qp))-min(unp.nominal_values(N_qp))), min=0, max=-np.inf)
-    params.add('intercept', value=0.0, min=-1, max=1)
+    params.add('slope', value=(min(delta_x).n-max(delta_x).n)/(max(unp.nominal_values(N_qp))-min(unp.nominal_values(N_qp))))
+    params.add('intercept', value=0.0)
     
     try:
         result = Minimizer(fcn2min, params, fcn_args=(unp.nominal_values(N_qp), [d.n for d in delta_x], [d.s for d in delta_x])).minimize(method='least_squares')
@@ -1355,6 +1434,27 @@ def filt(ydata, Wn, fs, order=2, filter_type='highpass'):
     filtered = sosfilt(sos, ydata)
     return filtered
 
+
+def map_values(values, map_bounds=(0.0, 1.0)):
+    '''
+    Returns the mapped values in the range defined by map_bounds
+
+    Parameters
+    ----------
+    values : list or np.array
+        Input values to map.
+    map_bounds : tuple, optional
+        Map bounds of the output values. The default is [0.0, 1.0].
+
+    Returns
+    -------
+    map : np.array
+        Mapped values.
+
+    '''
+    
+    values = np.asarray(values)
+    return (values-values.min())/(values.max()-values.min()) * (map_bounds[1]-map_bounds[0]) + map_bounds[0]
 
 
 
