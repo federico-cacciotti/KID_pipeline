@@ -59,7 +59,9 @@ def update_spreadsheet(spreadsheet_name, sweep):
     
     
 
-
+"""
+this function is deprecated. Use write_column or write_dataframe instead.
+"""
 def write_electrical_phase_responsivity(spreadsheet_name, index, responsivity):
     import gspread
     import pandas as pd
@@ -98,7 +100,6 @@ def write_electrical_phase_responsivity(spreadsheet_name, index, responsivity):
     
 def write_column(spreadsheet_name, worksheet_name, header, coordinates, data_column):
     import gspread
-    import numpy as np
     import pandas as pd
 
     gc = gspread.service_account()
@@ -131,4 +132,44 @@ def write_column(spreadsheet_name, worksheet_name, header, coordinates, data_col
     
     
     
+def write_dataframe(spreadsheet_name, dataframe, coordinates, worksheet_name=None):
+    import gspread
+
+    gc = gspread.service_account()
+    sh = gc.open(spreadsheet_name)
+    
+    # try to open an existing worksheet
+    if worksheet_name != None:
+        try:
+            print("Updating '{:s}' -> '{:s}'...".format(spreadsheet_name, worksheet_name))
+            ws = sh.worksheet(worksheet_name)
+        except:
+            print("Selected worksheet does not exist.")
+    else:
+        from datetime import datetime
+        worksheet_name = datetime.now().strftime("%Y%m%d_%H%M%S")
+        print("Updating '{:s}' -> '{:s}'...".format(spreadsheet_name, worksheet_name))
+        ws = sh.add_worksheet(worksheet_name, rows=1000, cols=50)
+        
+    
+    row, col = gspread.utils.a1_to_rowcol(coordinates)
+    num_rows, num_cols = dataframe.shape
+    
+    
+    # bold header
+    if num_cols > 1:
+        left_pos = gspread.utils.rowcol_to_a1(row, col)
+        right_pos = gspread.utils.rowcol_to_a1(row, col+num_cols)
+        ws.format('{:s}:{:s}'.format(left_pos, right_pos), {'textFormat': {'bold': True, "fontSize": 9}})
+    else:
+        ws.format('{:s}'.format(coordinates), {'textFormat': {'bold': True, "fontSize": 9}})
+        
+    # column format
+    if num_rows > 2:
+        upper_left_pos = gspread.utils.rowcol_to_a1(row+1, col)
+        lower_right_pos = gspread.utils.rowcol_to_a1(row+1+num_rows, col+num_cols)
+        ws.format('{:s}:{:s}'.format(upper_left_pos, lower_right_pos), {"numberFormat": {"type": "SCIENTIFIC", "pattern": "0.000E+0"}})
+
+    # write on the gspreadsheet
+    ws.update(coordinates, [dataframe.columns.values.tolist()] + dataframe.values.tolist())
     
