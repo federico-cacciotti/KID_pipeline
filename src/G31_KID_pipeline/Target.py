@@ -175,6 +175,50 @@ class Target():
             print("\nComplex fit parameters not available for {:d}/{:d} resonances.".format(known_resonaces_not_fitted, self.entries-self.out_of_res))
     
     
+    def get_magdB(self, channel):
+        I = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "I.npy")
+        Q = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "Q.npy")
+        
+        accumulation_length = 2**20 #for fs=244.14Hz #2**21 for fs=122.07Hz
+        fft_len = 1024
+        I /= (2**31-1)    # mistral client
+        I /= (accumulation_length-1)/(0.5*fft_len)    # mistral client
+        Q /= (2**31-1)    # mistral client
+        Q /= (accumulation_length-1)/(0.5*fft_len)    # mistral client
+        
+        amp = np.sqrt(I*I+Q*Q)
+        amp = 20*np.log10(amp)
+        return amp
+    
+    
+    def get_mag(self, channel):
+        I = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "I.npy")
+        Q = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "Q.npy")
+        
+        accumulation_length = 2**20 #for fs=244.14Hz #2**21 for fs=122.07Hz
+        fft_len = 1024
+        I /= (2**31-1)    # mistral client
+        I /= (accumulation_length-1)/(0.5*fft_len)    # mistral client
+        Q /= (2**31-1)    # mistral client
+        Q /= (accumulation_length-1)/(0.5*fft_len)    # mistral client
+        
+        amp = np.sqrt(I*I+Q*Q)
+        return amp
+ 
+    
+    def get_phase(self, channel):
+        I = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "I.npy")
+        Q = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "Q.npy")
+        
+        ph = np.arctan2(Q, I)
+        ph = np.unwrap(ph, period=np.pi)
+        return ph
+    
+    def get_freqs(self, channel):
+        freqs = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "freqs.npy")
+        return freqs
+    
+    
     def findMultiplePeaks(self):
         print("\nSearching for multiple peaks...")
         double_found = False
