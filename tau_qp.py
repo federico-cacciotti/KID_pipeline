@@ -146,7 +146,7 @@ class Event():
         return bin_heights, bin_position, result
         
     
-    def fit(self, force_fit=False):
+    def fit(self, force_fit=False, method='least_squares'):
         # check if fit parameters already exist
         if not np.any(self.par == None) and force_fit == False:
             print("Fit parameters already exist. Try to force the fitting routine by passing 'force_fit=True' to the fit function.")
@@ -185,7 +185,7 @@ class Event():
         params.add('v_offset', value=result.params['mu'].value, min=-1.0, max=1.0)
         
         try:
-            result = Minimizer(fcn2min, params, fcn_args=(self.time['data'][keep], self.A[keep], errors)).minimize(method='least_squares')
+            result = Minimizer(fcn2min, params, fcn_args=(self.time['data'][keep], self.A[keep], errors)).minimize(method=method)
             self.fit_result = result
             self.par = result.params
             np.save(self.filename.parent / (self.filename.stem+'.npy'), result)
