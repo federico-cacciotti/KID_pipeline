@@ -1,8 +1,0 @@
-README.md
-pyproject.toml
-src/G31_KID_pipeline/G31_KID_pipeline.py
-src/G31_KID_pipeline/__init__.py
-src/G31_KID_pipeline.egg-info/PKG-INFO
-src/G31_KID_pipeline.egg-info/SOURCES.txt
-src/G31_KID_pipeline.egg-info/dependency_links.txt
-src/G31_KID_pipeline.egg-info/top_level.txt

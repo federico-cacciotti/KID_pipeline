@@ -1,8 +1,0 @@
-centerd circle parameters
-Xc = 1.409e+04
-Yc = 1.623e+04
-radius = 9.739e+03
-
-rotation angle
-angle = 1.452e+00
-
