@@ -2,4 +2,3 @@
 .gitattributes
 .DS_Store
 local_tests/
-tests/
