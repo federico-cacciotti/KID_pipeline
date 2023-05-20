@@ -522,10 +522,6 @@ def complexS21Fit(I, Q, freqs, output_path, RESFREQ=None, DATAPOINTS=None, verbo
     # number of resonance FWHM datapoints around the resonant frequency to be considered for the fit 
     N_FWHM = 16.0
     
-    if DATAPOINTS == None:
-        # take 80% of the datapoint for the fit if not given
-        OPTIMAL_DATAPOINTS = int(0.8*freqs.size)
-    
     # normalization of I and Q to max()
     IQ_MAX = np.max([np.abs(I).max(), np.abs(Q).max()])
     I /= IQ_MAX
@@ -584,34 +580,31 @@ def complexS21Fit(I, Q, freqs, output_path, RESFREQ=None, DATAPOINTS=None, verbo
                 
             OPTIMAL_DATAPOINTS = 2*min(LEFT_DATAPOINTS, RIGHT_DATAPOINTS)
             
-            if DATAPOINTS == None:
-                DATAPOINTS = int(N_FWHM * peaks_info['widths'][arg_peak_resfreq])
-            
         elif len(peaks) == 1:
             ARG_RESFREQ = peaks[0]
-            if DATAPOINTS == None:
-                DATAPOINTS = int(N_FWHM * peaks_info['widths'][0])
-        
+            OPTIMAL_DATAPOINTS = int(N_FWHM * peaks_info['widths'][0])
+
         else:
             if verbose:
                 print("find_peaks does not find any peak. Selecting min(A) as a resonant frequency guess.")
             ARG_RESFREQ = np.argmin(A)
-            
-            if DATAPOINTS == None:
-                DATAPOINTS = int(0.8*freqs.size)
+            OPTIMAL_DATAPOINTS = int(0.8*freqs.size)
             
     else:
         try:
             ARG_RESFREQ = np.argwhere(freqs >= RESFREQ)[0][0]
-            if DATAPOINTS == None:
-                DATAPOINTS = int(0.8*freqs.size)
                 
         except IndexError: 
             print('Given value of RESFREQ is out of bounds. Setting res_feq to min(A).')
-            ARG_RESFREQ = np.argmin(A) 
+            ARG_RESFREQ = np.argmin(A)
+
+        OPTIMAL_DATAPOINTS = int(0.8*freqs.size)
             
     
-    if OPTIMAL_DATAPOINTS < DATAPOINTS:
+    if DATAPOINTS == None:
+        DATAPOINTS = OPTIMAL_DATAPOINTS
+    
+    elif OPTIMAL_DATAPOINTS < DATAPOINTS:
         if verbose:
             print("Warning: input datapoints exceed the optimal value!")
             print("Setting DATAPOINTS to its optimal value.")

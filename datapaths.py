@@ -1,11 +1,11 @@
 from pathlib import Path
 
 print('Looking for remote data folder...')
-working_directory = Path('/Volumes/homes/Federico Cacciotti/dati')
+working_directory = Path('Volumes/homes')
 if not working_directory.exists():
     print('Remote data folder not found.')
-    print('Switching to local data folder...')
-    working_directory = Path('/Users/federicocacciotti/Documents/PhD/dati')
+    print('Switching to /home/cacciotf/data directory')
+    working_directory = Path('/home/cacciotf/data')
 
 target = working_directory / Path('target')
 vna = working_directory / Path('vna')
@@ -33,7 +33,7 @@ def check_if_dirs_exist(mkdir = False):
 
     '''
     
-    error_msg = ' directory does not exists'
+    error_msg = ' directory does not exist'
     add_dir_msg = ' directory added'
     
     if not target.exists():
