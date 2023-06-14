@@ -8,7 +8,7 @@ from glob import glob
             VNA class
 '''
 class VNA():
-    def __init__(self, filename, temperature=None, build_dataset=False, remove_baseline=False, label=None):
+    def __init__(self, filename, temperature=None, build_dataset=False, remove_baseline=False, label=None, ROACH='MISTRAL'):
         '''
         Class for reading the ROACH VNA sweeps.
 
@@ -46,7 +46,7 @@ class VNA():
             sys.exit()
         
         if not (datapaths.vna_S21 / self.filename).exists() or build_dataset:
-            fc.buildS21Dataset(self)
+            fc.buildS21Dataset(self, ROACH=ROACH)
             
         # load data to memory
         self.loadData()

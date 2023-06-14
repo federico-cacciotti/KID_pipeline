@@ -1,36 +1,47 @@
 from . import datapaths
+import pygetdata
 
 class Dirfile():
-    def __init__(self, filename, fs, first_frame, num_frames=10000, label=None):
+    def __init__(self, filename, fs, label=None):
         self.filename = filename
         self.fs = fs
-        self.first_frame = first_frame
-        self.num_frames = num_frames
         
         if label == None:
             self.label = filename
         else:
             self.label = label
   
-    
+        self.dirfile = pygetdata.dirfile((datapaths.dirfile/self.filename).as_posix())
+        self.nframes = self.dirfile.nframes
+
+        print("Selected dirfile: {:s}".format(self.filename.as_posix()))
+        print("Found {:d} frames".format(self.nframes))
+
+
+    def get_time(self, first_frame=0, num_frames=None, remove_offset=False):
+        if num_frames == None:
+            num_frames = self.nframes
+
+        time = self.dirfile.getdata("time", first_frame=first_frame, num_frames=num_frames)
+        
+        if remove_offset:
+            time -= time[0]
+
+        return time
+
+
     '''
-    noise_type = 'p', 'a', 'I' or 'Q'
+    stream_type = 'p', 'a', 'I' or 'Q'
     '''
-    def get_stream(self, channel, data_type, xdata_type='time'):
-        import pygetdata
+
+    def get_stream(self, channel, stream_type='p', first_frame=0, num_frames=None):
+        if num_frames == None:
+            num_frames = self.nframes
         
-        # open time streams
-        xdata = pygetdata.dirfile((datapaths.dirfile/self.filename).as_posix()).getdata("time", first_frame=self.first_frame, num_frames=self.num_frames)
-        xdata -= xdata[0]
-        ydata = pygetdata.dirfile((datapaths.dirfile/self.filename).as_posix()).getdata("ch{:s}_{:03d}".format(data_type, channel), first_frame=self.first_frame, num_frames=self.num_frames)
-        
-        if xdata_type == 'time':
-            return xdata, ydata
-        
-        if xdata_type == 'index':
-            xdata = range(self.first_frame, self.first_frame+ydata.size)
-            return xdata, ydata
+        stream = self.dirfile.getdata("ch{:s}_{:03d}".format(stream_type, channel), first_frame=first_frame, num_frames=num_frames)
+        return stream
     
+
     def plot_stream(self, xdata, ydata, axis=None, label=None, color=None, linestyle='solid', linewidth=1, alpha=1.0):
         
         if axis == None:

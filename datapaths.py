@@ -1,7 +1,7 @@
 from pathlib import Path
 
 print('Looking for remote data folder...')
-working_directory = Path('Volumes/homes')
+working_directory = Path('/Volumes/homes')
 if not working_directory.exists():
     print('Remote data folder not found.')
     print('Switching to /home/cacciotf/data directory')

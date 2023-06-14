@@ -628,8 +628,8 @@ def complexS21Fit(I, Q, freqs, output_path, RESFREQ=None, DATAPOINTS=None, verbo
         
     
     # removing the cable delay
-    tau = 0.05 # microsec --> in the dilution refrigerator!
-    #tau = 0.08 # microsec --> in the MISTRAL cryostat!
+    #tau = 0.05 # microsec --> in the dilution refrigerator!
+    tau = 0.08 # microsec --> in the MISTRAL cryostat!
     phase += 2.0*np.pi*tau*freqs
     phase -= int(phase[0]/np.pi)*np.pi
     phase = np.unwrap(phase)
@@ -1083,63 +1083,56 @@ def plot_target(target, axis, color=None, linestyle='solid', linewidth=1, flat_a
             axis.plot(x_data_chan, y_data_chan, linewidth=linewidth, alpha=0.2, color=color)
         else:
             axis.plot(x_data_chan, y_data_chan, linewidth=linewidth, linestyle=linestyle, color=color)
-    
 
-
-def Delta(T_c):
+def Delta_0(T_c):
     from scipy.constants import k as kb
     return 1.764*kb*T_c
+
+def Delta(T, T_c):
+    return Delta_0(T_c) * np.sqrt(1.0 - (T/T_c)**4.0)
 
 def n_qp(T, T_c, N_0):
     from scipy.constants import k as kb
     from uncertainties import unumpy as unp
-    return 2.0*N_0*unp.sqrt(2.0*np.pi*kb*T*Delta(T_c)) * unp.exp(-Delta(T_c)/(kb*T))
+    return 2.0*N_0*unp.sqrt(2.0*np.pi*kb*T*Delta_0(T_c)) * unp.exp(-Delta_0(T_c)/(kb*T))
 
-def electrical_phase_responsivity_linear_fit(nu_r, base_nu_r, T, T_c, N_0, V_abs, label=None, color='black', axis=None):
+def electrical_phase_responsivity_linear_fit(nu_r, base_nu_r, T, T_c, N_0, V_abs):
     '''
-    Returns the slopes of the dx vs dN_qp trend
+    Returns the slopes of the dx vs dN_qp trend. This routine performs a linear fit on the dN_qp VS dx trend (with uncertainties on the temperatures) and then inverts the slope.
 
     Parameters
     ----------
-    nu_r : (u)numpy array
+    nu_r : numpy array
         resonant frequencies in MHz.
-    base_nu_r : (u)float
+    base_nu_r : float
         base resonant frequency in MHz.
-    T : numpy array
+    T : (u)numpy array
         sweep temperatures in K.
-    T_c : float
+    T_c : (u)float
         critical temperature in K.
     N_0 : float
         density of states at the Fermi surface in 1/um^3 1/J.
     V_abs : float
         absorber volume in um^3.
-    label : list, optional
-        list of labels. The default is 'pixel'.
-    color : list, optional
-        list of colors. The default is 'black'.
-    axis : matplotlib.pyplot axis, optional
-        axis for plot. The default is None.
 
     Returns
     -------
-    lmfit.params
-        dictionary of fit paramters.
+    dictionary
+        dictionary with 'fit_results' (lmfit.minimize.results or None), 'xdata' (ufloat) and 'ydata' (np.array).
 
     '''
     from lmfit import Minimizer, Parameters
     from uncertainties import ufloat, unumpy as unp
     
-    # check if the function parameters are ufloat variables
+    # convertion to numpy array
+    nu_r = np.asarray(nu_r)
+    delta_x = (nu_r-base_nu_r)/base_nu_r
+    
+    # check if all the temperatures are ufloat variables
+    # if not, set the uncertainty to 1%
     from uncertainties.core import Variable as uVar
-    if type(base_nu_r) != uVar:
-        base_nu_r = ufloat(base_nu_r, 1.0e-3)
+    T = np.asarray([ufloat(Ti, 0.01*Ti) if type(Ti)!=uVar else Ti for Ti in T])
     
-    
-    # converts lists to np arrays
-    nu0 = ufloat(base_nu_r.n, base_nu_r.s)
-    delta_x = [(n-nu0)/nu0 for n in nu_r]
-    
-    T = np.asarray(T)
     
     # function used for the fit procedure
     def linear_function(x, slope, intercept):
@@ -1161,29 +1154,17 @@ def electrical_phase_responsivity_linear_fit(nu_r, base_nu_r, T, T_c, N_0, V_abs
     
     # linear fit
     params = Parameters()
-    params.add('slope', value=(min(delta_x).n-max(delta_x).n)/(max(unp.nominal_values(N_qp))-min(unp.nominal_values(N_qp))))
+    params.add('slope', value=(N_qp.min().n-N_qp.max().n)/(delta_x.max()-delta_x.min()))
     params.add('intercept', value=0.0)
     
     try:
-        result = Minimizer(fcn2min, params, fcn_args=(unp.nominal_values(N_qp), [d.n for d in delta_x], [d.s for d in delta_x])).minimize(method='least_squares')
-        if axis is not None:
-            axis.ticklabel_format(axis='both', style='sci', useMathText=True, scilimits=(0,0))
-            axis.tick_params(axis='both', which='both', direction='in', bottom=True, left=True, top=True, right=True)
-            
-            axis.set_xlabel("$N_{qp}$")
-            axis.set_ylabel("$\delta x$")
-            
-            axis.errorbar(unp.nominal_values(N_qp), [d.n for d in delta_x], yerr=[d.s for d in delta_x], xerr=unp.std_devs(N_qp), color=color, linestyle='', fmt='o', capsize=2, markersize=3)
-            axis.plot(unp.nominal_values(N_qp), linear_function(unp.nominal_values(N_qp), result.params['slope'].value, result.params['intercept'].value), color=color, label=label)
-            
-            axis.grid(color='gray', alpha=0.4)
-            
-            return result.params
+        results = Minimizer(fcn2min, params, fcn_args=(delta_x, unp.nominal_values(N_qp), unp.std_devs(N_qp))).minimize(method='least_squares')
+    
     except ValueError:
-        print("Cannot find fit parameters.")
-        raise ValueError()
+        print("Exeption: ValueError(). Cannot find fit parameters.")
+        return {'fit_results': None, 'xdata': N_qp, 'ydata': delta_x}
     
-    
+    return {'fit_results': results, 'xdata': N_qp, 'ydata': delta_x}
     
 
 def electrical_amplitude_responsivity_linear_fit(Q_i, T, T_c, N_0, V_abs, label=None, color='black', axis=None):
@@ -1292,7 +1273,7 @@ def electrical_phase_responsivity(slope, T_c, Q_tot, tau_qp, eta_qp):
         The electrical phase responsivity in rad/Watt.
 
     """
-    return -slope*4.0*Q_tot*eta_qp*tau_qp/Delta(T_c) # rad/W
+    return -slope*4.0*Q_tot*eta_qp*tau_qp/Delta_0(T_c) # rad/W
 
 
 def electrical_amplitude_responsivity(slope, T_c, Q_tot, tau_qp, eta_qp):
@@ -1318,7 +1299,7 @@ def electrical_amplitude_responsivity(slope, T_c, Q_tot, tau_qp, eta_qp):
         The electrical amplitude responsivity in rad/Watt.
 
     """
-    return slope*Q_tot*eta_qp*tau_qp/Delta(T_c) # rad/W
+    return slope*Q_tot*eta_qp*tau_qp/Delta_0(T_c) # rad/W
 
 
 

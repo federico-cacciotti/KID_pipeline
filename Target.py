@@ -7,7 +7,7 @@ import sys
             Target class
 '''
 class Target():
-    def __init__(self, filename, temperature=None, build_dataset=False, label=None, out_of_resonance_parameter=2.0, find_multiple_peaks=True):
+    def __init__(self, filename, temperature=None, build_dataset=False, label=None, out_of_resonance_parameter=2.0, find_multiple_peaks=True, ROACH='MISTRAL'):
         print("+ + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + +")
         print('Reading target sweep {:s}...'.format(filename))
         self.filename = filename
@@ -36,7 +36,7 @@ class Target():
         
         # building S21 dataset
         if not (datapaths.target_S21 / self.filename).exists() or build_dataset:
-            fc.buildS21Dataset(self)
+            fc.buildS21Dataset(self, ROACH=ROACH)
         
         # building data dictonaries
         self.entry = []
@@ -175,27 +175,11 @@ class Target():
             print("\nComplex fit parameters not available for {:d}/{:d} resonances.".format(known_resonaces_not_fitted, self.entries-self.out_of_res))
     
     
-    def get_magdB(self, channel):
-        I = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "I.npy")
-        Q = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "Q.npy")
-        
-        accumulation_length = 2**20 #for fs=244.14Hz #2**21 for fs=122.07Hz
-        fft_len = 1024
-        I /= (2**31-1)    # mistral client
-        I /= (accumulation_length-1)/(0.5*fft_len)    # mistral client
-        Q /= (2**31-1)    # mistral client
-        Q /= (accumulation_length-1)/(0.5*fft_len)    # mistral client
-        
-        amp = np.sqrt(I*I+Q*Q)
-        amp = 20*np.log10(amp)
-        return amp
-    
-    
     def get_mag(self, channel):
         I = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "I.npy")
         Q = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "Q.npy")
         
-        accumulation_length = 2**20 #for fs=244.14Hz #2**21 for fs=122.07Hz
+        accumulation_length = 2**21 #for fs=244.14Hz #2**21 for fs=122.07Hz
         fft_len = 1024
         I /= (2**31-1)    # mistral client
         I /= (accumulation_length-1)/(0.5*fft_len)    # mistral client
@@ -204,6 +188,16 @@ class Target():
         
         amp = np.sqrt(I*I+Q*Q)
         return amp
+    
+    
+    def get_Iraw(self, channel):
+        return np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "I.npy")
+    
+    def get_Qraw(self, channel):
+        return np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "Q.npy")
+    
+    def get_magdB(self, channel):
+        return np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "mag.npy")
  
     
     def get_phase(self, channel):

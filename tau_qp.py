@@ -170,11 +170,11 @@ class Event():
             return (model-data)/errs
         
         # parameters initial guess
-        mask = self.A >= 0.6*self.A.max()
+        mask = self.A-self.A.min() >= 0.6*(self.A.max()-self.A.min())
         t_offset = self.time['data'][mask][0]
         t_fall_offset = self.time['data'][mask][-1]
         
-        mask = self.A >= 0.90*self.A.max()
+        mask = self.A-self.A.min() >= 0.90*(self.A.max()-self.A.min())
         time_at_max = 0.5*(self.time['data'][mask][0] + self.time['data'][mask][-1])
         
         params = Parameters()
