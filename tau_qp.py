@@ -197,7 +197,7 @@ class Event():
             print("Optimal parameters not found")
     
     
-    def plotFit(self, save_figure=True, show_figure=False):
+    def plotFit(self, save_figure=True, show_figure=False, title=None):
         import matplotlib.pyplot as plt
         
         fig = plt.figure(figsize=(7, 7))
@@ -212,14 +212,18 @@ class Event():
         ax0.grid(color='gray', alpha=0.4)
         ax0.set_xlabel('Time [$\mu$s]')
         ax0.set_ylabel('Amplitude [V]')
-        plt.title(self.label)
+        
+        if title != None:
+            plt.title(title)
+        else:
+            plt.title(self.label)
         
         if save_figure:
             fig.savefig(self.filename.parents[1]/(self.label+'.png'), dpi=250)
         if show_figure:
             plt.show()
         
-    def fancyPlotFit(self, save_figure=True, show_figure=False):
+    def fancyPlotFit(self, save_figure=True, show_figure=False, title=None):
         import matplotlib.pyplot as plt
         import matplotlib.gridspec as gridspec
         
@@ -229,7 +233,10 @@ class Event():
         plt.subplots_adjust(hspace = 0.0, wspace=0.0)
         gs0 = gridspec.GridSpec(nrows=5, ncols=5, figure=fig)
         
-        fig.suptitle(self.label)
+        if title != None:
+            fig.suptitle(title)
+        else:
+            fig.suptitle(self.label)
         
         # FIR PLOT
         ax0 = fig.add_subplot(gs0[0:4, 0:4])
