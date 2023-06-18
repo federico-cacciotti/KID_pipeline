@@ -210,7 +210,7 @@ class Event():
         
         ax0.legend(loc='best')
         ax0.grid(color='gray', alpha=0.4)
-        ax0.set_xlabel('Time [$\mu$'+self.horizontal_units+']')
+        ax0.set_xlabel('Time [$\mu$s]')
         ax0.set_ylabel('Amplitude [V]')
         plt.title(self.label)
         
@@ -246,15 +246,15 @@ class Event():
         ax0.plot(self.time['data']*1e6, FIR, linestyle='solid', linewidth=4, label='Fit', color='red', alpha=0.5)
         ax0.legend(loc='best')
         ax0.grid(color='gray', alpha=0.4)
-        ax0.set_xlabel('Time [$\mu$'+self.horizontal_units+']')
-        ax0.set_ylabel('Amplitude ['+self.vertical_units+']')
+        ax0.set_xlabel('Time [$\mu$s]')
+        ax0.set_ylabel('Amplitude [V]')
         
         # RESIDUALS PLOT
         res = self.A-FIR
         ax_res.plot(self.time['data']*1e6, res, linestyle='solid', linewidth=1, label='Residuals', color='black')
         ax_res.legend(loc='best')
         ax_res.grid(color='gray', alpha=0.4)
-        ax_res.set_xlabel('Time [$\mu$'+self.horizontal_units+']')
+        ax_res.set_xlabel('Time [$\mu$s]')
         
         # HISTOGRAM PLOT
         bin_heights, bin_position, result = self.compute_errorbars()
