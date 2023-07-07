@@ -318,7 +318,7 @@ class VNA():
         '''
         print(self.filename+': peak finding...')
         
-        mag, phase = self.mag-self.mag_filter, self.phase-self.phase_baseline
+        mag, phase = self.mag-self.mag_baseline, self.phase-self.phase_baseline
         
         # peak finding
         from scipy.signal import find_peaks
