@@ -9,7 +9,13 @@ from pathlib import Path
 '''
     
 
-def impulse_response(t, tau_rise, tau_fall, A, t_offset, v_offset):
+def impulse_response(t, params):
+    tau_rise = params['tau_rise']
+    tau_fall = params['tau_fall']
+    A = params['A']
+    t_offset = params['t_offset']
+    v_offset = params['v_offset']
+    
     y = v_offset + A*(np.exp(-(t-t_offset)/tau_fall) - np.exp(-(t-t_offset)/tau_rise))
     y = [v_offset if y_<=v_offset else y_ for y_ in y]
     return np.array(y)
@@ -98,7 +104,9 @@ class Event():
         
         colors = ['gray', 'red', 'blue', 'green']
         
-        fig, axis = plt.subplots(1, 3, sharex=True, figsize=(7,7))
+        fig, axis = plt.subplots(1, 3, sharex=True, figsize=(18,7))
+        
+        plt.subplots_adjust(hspace=0.2)
         
         for CHi, color in zip(self.channels, colors):
             axis[0].plot(self.time['data'], self.channels[str(CHi)]['data'], linestyle='solid', label=self.channels[str(CHi)]['label'], color=color)
@@ -162,7 +170,7 @@ class Event():
         errors = np.ones(len(keep))*result.params['sigma'].value
         
         def fcn2min(params, x, data, errs=None):
-            model = impulse_response(x, params['tau_rise'].value, params['tau_fall'].value, params['A'].value, params['t_offset'].value, params['v_offset'].value)
+            model = impulse_response(x, params)
             
             if errs is None:
                 return model-data
@@ -178,8 +186,8 @@ class Event():
         time_at_max = 0.5*(self.time['data'][mask][0] + self.time['data'][mask][-1])
         
         params = Parameters()
-        params.add('tau_rise', value=time_at_max-t_offset, min=0.0, max=1.0e-3)
-        params.add('tau_fall', value=t_fall_offset-time_at_max, min=0.0, max=1.0e-3)
+        params.add('tau_rise', value=time_at_max-t_offset, min=0.0, max=1.0e-2)
+        params.add('tau_fall', value=t_fall_offset-time_at_max, min=0.0, max=1.0e-2)
         params.add('A', value=self.A.max(), min=0.0, max=np.inf)
         params.add('t_offset', value=t_offset, min=-1.0, max=1.0)
         params.add('v_offset', value=result.params['mu'].value, min=-1.0, max=1.0)
@@ -203,14 +211,14 @@ class Event():
         fig = plt.figure(figsize=(7, 7))
         ax0 = plt.subplot(111)
         
-        ax0.plot(self.time['data']*1e6, self.A, linestyle='solid', label='Data', color='gray')
+        ax0.plot(self.time['data'], self.A, linestyle='solid', label='Data', color='gray')
         
-        FIR = impulse_response(self.time['data']*1e6, self.par['tau_rise'].value*1e6, self.par['tau_fall'].value*1e6, self.par['A'].value, self.par['t_offset'].value*1e6, self.par['v_offset'].value)
+        FIR = impulse_response(self.time['data'], self.par)
         ax0.plot(self.time['data']*1e6, FIR, linestyle='solid', linewidth=4, label='Fit', color='red', alpha=0.5)
         
         ax0.legend(loc='best')
         ax0.grid(color='gray', alpha=0.4)
-        ax0.set_xlabel('Time [$\mu$s]')
+        ax0.set_xlabel('Time [s]')
         ax0.set_ylabel('Amplitude [V]')
         
         if title != None:
@@ -248,20 +256,20 @@ class Event():
         ax_hist.tick_params(axis='both', which='both', direction='in', bottom=True, left=True, top=True, right=True)
         ax_hist.set_yticklabels([])
         
-        FIR = impulse_response(self.time['data']*1e6, self.par['tau_rise'].value*1e6, self.par['tau_fall'].value*1e6, self.par['A'].value, self.par['t_offset'].value*1e6, self.par['v_offset'].value)
-        ax0.plot(self.time['data']*1e6, self.A, linestyle='solid', label='Data', color='gray', linewidth=1)
-        ax0.plot(self.time['data']*1e6, FIR, linestyle='solid', linewidth=4, label='Fit', color='red', alpha=0.5)
+        FIR = impulse_response(self.time['data'], self.par)
+        ax0.plot(self.time['data'], self.A, linestyle='solid', label='Data', color='gray', linewidth=1)
+        ax0.plot(self.time['data'], FIR, linestyle='solid', linewidth=4, label='Fit', color='red', alpha=0.5)
         ax0.legend(loc='best')
         ax0.grid(color='gray', alpha=0.4)
-        ax0.set_xlabel('Time [$\mu$s]')
+        ax0.set_xlabel('Time [s]')
         ax0.set_ylabel('Amplitude [V]')
         
         # RESIDUALS PLOT
         res = self.A-FIR
-        ax_res.plot(self.time['data']*1e6, res, linestyle='solid', linewidth=1, label='Residuals', color='black')
+        ax_res.plot(self.time['data'], res, linestyle='solid', linewidth=1, label='Residuals', color='black')
         ax_res.legend(loc='best')
         ax_res.grid(color='gray', alpha=0.4)
-        ax_res.set_xlabel('Time [$\mu$s]')
+        ax_res.set_xlabel('Time [s]')
         
         # HISTOGRAM PLOT
         bin_heights, bin_position, result = self.compute_errorbars()
@@ -284,11 +292,22 @@ class Event():
             plt.show()
     
     def printParameters(self):
-        string = "{:.4e},{:.4e},{:.4e},{:.4e},{:.4e},{:.4e},{:.4e},{:.4e},{:.4e},{:.4e}".format(self.par['tau_rise'].value*1e6, self.par['tau_rise'].stderr*1e6, self.par['tau_fall'].value*1e6, 
-                                                                                                self.par['tau_fall'].stderr*1e6, self.par['A'].value, self.par['A'].stderr, self.par['t_offset'].value*1e6, 
-                                                                                                self.par['t_offset'].stderr*1e6, self.par['v_offset'].value, self.par['v_offset'].stderr)
-    
-        print(string)
+        try:
+            string = "{:s},{:.4e},{:.4e},{:.4e},{:.4e},{:.4e},{:.4e},{:.4e},{:.4e},{:.4e},{:.4e}".format(self.label, self.par['tau_rise'].value*1e6, self.par['tau_rise'].stderr*1e6, self.par['tau_fall'].value*1e6, self.par['tau_fall'].stderr*1e6, self.par['A'].value, self.par['A'].stderr, self.par['t_offset'].value*1e6, self.par['t_offset'].stderr*1e6, self.par['v_offset'].value, self.par['v_offset'].stderr)
+
+            print(string)
+        except:
+            print("--")
+            pass
+
+        
+        
+        
+def add_batch(tek_numbers, path_to_tek_files, CH1=None, CH2=None, CH3=None, CH4=None, label_prefix='Event_', tek_prefix='tek', tek_extension='.csv', digits=4):
+    batch = []
+    for i,tek_number in enumerate(tek_numbers):
+        batch.append(Event(path_to_tek_files+'/'+tek_prefix+'{:04d}'.format(tek_number)+tek_extension, CH1=CH1, CH2=CH2, CH3=CH3, CH4=CH4, label=label_prefix+'{:d}'.format(i)))
+    return batch
         
 
 def fitAverage(IQ_timestreams, bounds=[[0, 0, 0, -50], [400, 400, 100, 10]], p0=[100, 150, 10, 0], time_unit='us', voffset=False):

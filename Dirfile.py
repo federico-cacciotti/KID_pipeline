@@ -1,9 +1,10 @@
 from . import datapaths
 import pygetdata
+from pathlib import Path
 
 class Dirfile():
     def __init__(self, filename, fs, label=None):
-        self.filename = filename
+        self.filename = Path(filename)
         self.fs = fs
         
         if label == None:

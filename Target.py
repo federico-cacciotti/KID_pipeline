@@ -94,8 +94,7 @@ class Target():
                     
         return out_of_res_number
 
-    def fitS21(self, channel, RESFREQ=None, DATAPOINTS=None, plot=False, fitting_method='leastsq'):
-        print("")
+    def fitS21(self, channel, RESFREQ=None, DATAPOINTS=None, plot=False, fitting_method='leastsq', verbose=True):
         from tqdm import tqdm
         
         path = datapaths.target_S21 / self.filename
@@ -113,7 +112,7 @@ class Target():
                     
                     try:
                         params, chi2 = fc.complexS21Fit(I=I, Q=Q, freqs=freqs, output_path=out_path, DATAPOINTS=DATAPOINTS,
-                                                        fitting_method=fitting_method)
+                                                        fitting_method=fitting_method, verbose=verbose)
                         
                         e['Re[a]'] = params['Re[a]']
                         e['Im[a]'] = params['Im[a]']
@@ -134,7 +133,7 @@ class Target():
             out_path = datapaths.target_S21 / self.filename / "{:03d}".format(channel)
             
             params, chi2 = fc.complexS21Fit(I=I, Q=Q, freqs=freqs, RESFREQ=RESFREQ, output_path=out_path, DATAPOINTS=DATAPOINTS, 
-                                            verbose=True, fitting_method=fitting_method)
+                                            verbose=verbose, fitting_method=fitting_method)
                 
             self.entry[channel]['Re[a]'] = params['Re[a]']
             self.entry[channel]['Im[a]'] = params['Im[a]']

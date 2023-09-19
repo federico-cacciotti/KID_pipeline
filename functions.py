@@ -11,7 +11,7 @@ from . import datapaths
 '''
         Function for overplotting targets and MS2034B data
 '''
-def overplotTargetSweeps(targets=None, ms2034b_data_list=None, channel_index=False, add_out_of_res_plot=False, complex_fit_above=False, flat_at_0db=True, colormap='coolwarm', markers=True, only_idxs=None):
+def overplotTargetSweeps(targets=None, ms2034b_data_list=None, channel_index=False, add_out_of_res_plot=False, complex_fit_above=False, flat_at_0db=True, colormap='coolwarm', markers=True, only_idxs=None, xlim=None):
     from matplotlib import pyplot as plt
     from matplotlib.lines import Line2D
     from matplotlib import colormaps as cm
@@ -29,6 +29,8 @@ def overplotTargetSweeps(targets=None, ms2034b_data_list=None, channel_index=Fal
     ax0.grid(linestyle='-', alpha=0.5)
     ax0.set_ylabel('Mag [dB]')
     ax0.set_xlabel('Frequency [MHz]')
+    if xlim != None:
+        ax0.set_xlim(xlim)
     
     # plot roach target sweeps
     handles = []
@@ -487,7 +489,7 @@ def jointTargetSweeps(targets, exclude_channels=[[]], flat_at_0db=False):
 '''
                 complexS21Fit function
 '''
-def complexS21Fit(I, Q, freqs, output_path, RESFREQ=None, DATAPOINTS=None, verbose=False, fitting_method='leastsq'):
+def complexS21Fit(I, Q, freqs, output_path, RESFREQ=None, DATAPOINTS=None, verbose=True, fitting_method='leastsq'):
     '''
     Returns the complex fit of the S21 transfer function
 
