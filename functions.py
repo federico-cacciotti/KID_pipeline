@@ -839,6 +839,7 @@ def complexS21Fit(I, Q, freqs, output_path, RESFREQ=None, DATAPOINTS=None, verbo
             complexS21Plot function
 '''
 def complexS21Plot(complex_fit_data_path):
+    from matplotlib.lines import Line2D
     from pathlib import Path
     complex_fit_data_path = Path(complex_fit_data_path)
     
@@ -1252,7 +1253,7 @@ def electrical_amplitude_responsivity_linear_fit(Q_i, T, T_c, N_0, V_abs, label=
 
 
 
-def electrical_phase_responsivity(slope, T_c, Q_tot, tau_qp, eta_qp):
+def electrical_phase_responsivity(slope, T_c, Q_tot, tau_qp, eta_pb):
     """
     This functions returns the electrical phase responsivity
 
@@ -1266,7 +1267,7 @@ def electrical_phase_responsivity(slope, T_c, Q_tot, tau_qp, eta_qp):
         Total quality factor.
     tau_qp : (u)float
         Quasiparticle recombination time in seconds.
-    eta_qp : float
+    eta_pb : float
         Pair breaking efficiency.
 
     Returns
@@ -1275,10 +1276,10 @@ def electrical_phase_responsivity(slope, T_c, Q_tot, tau_qp, eta_qp):
         The electrical phase responsivity in rad/Watt.
 
     """
-    return -slope*4.0*Q_tot*eta_qp*tau_qp/Delta_0(T_c) # rad/W
+    return -slope*4.0*Q_tot*eta_pb*tau_qp/Delta_0(T_c) # rad/W
 
 
-def electrical_amplitude_responsivity(slope, T_c, Q_tot, tau_qp, eta_qp):
+def electrical_amplitude_responsivity(slope, T_c, Q_tot, tau_qp, eta_pb):
     """
     This functions returns the electrical amplitude responsivity
 
@@ -1292,7 +1293,7 @@ def electrical_amplitude_responsivity(slope, T_c, Q_tot, tau_qp, eta_qp):
         Total quality factor.
     tau_qp : (u)float
         Quasiparticle recombination time in seconds.
-    eta_qp : float
+    eta_pb : float
         Pair breaking efficiency.
 
     Returns
@@ -1301,7 +1302,7 @@ def electrical_amplitude_responsivity(slope, T_c, Q_tot, tau_qp, eta_qp):
         The electrical amplitude responsivity in rad/Watt.
 
     """
-    return slope*Q_tot*eta_qp*tau_qp/Delta_0(T_c) # rad/W
+    return slope*Q_tot*eta_pb*tau_qp/Delta_0(T_c) # rad/W
 
 
 
