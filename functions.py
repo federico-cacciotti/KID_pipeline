@@ -630,8 +630,8 @@ def complexS21Fit(I, Q, freqs, output_path, RESFREQ=None, DATAPOINTS=None, verbo
         
     
     # removing the cable delay
-    #tau = 0.05 # microsec --> in the dilution refrigerator!
-    tau = 0.08 # microsec --> in the MISTRAL cryostat!
+    tau = 0.05 # microsec --> in the dilution refrigerator!
+    #tau = 0.08 # microsec --> in the MISTRAL cryostat!
     phase += 2.0*np.pi*tau*freqs
     phase -= int(phase[0]/np.pi)*np.pi
     phase = np.unwrap(phase)

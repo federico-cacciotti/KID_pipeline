@@ -150,11 +150,11 @@ class Event():
         except TypeError:
             keep = np.logical_and(bin_position[0:-1] <= 4.0*(bin_max_position-bin_position[0]), bin_heights != 0.0)
             result = Minimizer(fcn2min, params, fcn_args=(bin_position[0:-1][keep], bin_heights[keep])).minimize()
-         
+
         return bin_heights, bin_position, result
         
     
-    def fit(self, force_fit=False, method='least_squares'):
+    def fit(self, force_fit=False, method='least_squares', time_mask=None):
         # check if fit parameters already exist
         if not np.any(self.par == None) and force_fit == False:
             print("Fit parameters already exist. Try to force the fitting routine by passing 'force_fit=True' to the fit function.")
@@ -166,8 +166,7 @@ class Event():
         # errorbars are the std dev of the lower part of the stream
         bin_heights, bin_position, result = self.compute_errorbars()
         
-        keep = np.array(self.A) >= -10.0 # all the stream
-        errors = np.ones(len(keep))*result.params['sigma'].value
+        errors = np.ones(len(self.time['data']))*result.params['sigma'].value
         
         def fcn2min(params, x, data, errs=None):
             model = impulse_response(x, params)
@@ -192,8 +191,11 @@ class Event():
         params.add('t_offset', value=t_offset, min=-1.0, max=1.0)
         params.add('v_offset', value=result.params['mu'].value, min=-1.0, max=1.0)
         
+        if np.any(time_mask) == None:
+            time_mask = self.time['data'] < np.inf
+        
         try:
-            result = Minimizer(fcn2min, params, fcn_args=(self.time['data'][keep], self.A[keep], errors)).minimize(method=method)
+            result = Minimizer(fcn2min, params, fcn_args=(self.time['data'][time_mask], self.A[time_mask], errors[time_mask])).minimize(method=method)
             self.fit_result = result
             self.par = result.params
             np.save(self.filename.parent / (self.filename.stem+'.npy'), result)
