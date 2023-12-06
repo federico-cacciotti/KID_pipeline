@@ -48,8 +48,8 @@ def overplotTargetSweeps(targets=None, ms2034b_data_list=None, channel_index=Fal
                 # read one sweep at a time
                 if not e['is_out_of_res'] or add_out_of_res_plot:
                     channel = e['channel']
-                    x_data_chan = np.load(datapaths.target_S21 / target.filename / "{:03d}".format(channel) / "freqs.npy")
-                    y_data_chan = np.load(datapaths.target_S21 / target.filename / "{:03d}".format(channel) / "mag.npy")
+                    x_data_chan = np.load(datapaths.target_processed / target.filename / "{:03d}".format(channel) / "freqs.npy")
+                    y_data_chan = np.load(datapaths.target_processed / target.filename / "{:03d}".format(channel) / "mag.npy")
                     
                     if flat_at_0db:
                         hist, bin_edges = np.histogram(y_data_chan, bins=70)
@@ -141,16 +141,16 @@ def overplotTargetCircles(targets=None, ms2034b_data_list=None, complex_fit_abov
                 # read one sweep at a time
                 if e['is_out_of_res']==False:
                     channel = e['channel']
-                    x_data_chan = np.load(datapaths.target_S21 / target.filename / "{:03d}".format(channel) / "freqs.npy")
+                    x_data_chan = np.load(datapaths.target_processed / target.filename / "{:03d}".format(channel) / "freqs.npy")
                     
                     try:
                         if force_raw_data:
                             raise FileNotFoundError
-                        I = np.load(datapaths.target_S21 / target.filename / "{:03d}".format(channel) / "I_prime.npy")
-                        Q = np.load(datapaths.target_S21 / target.filename / "{:03d}".format(channel) / "Q_prime.npy")
+                        I = np.load(datapaths.target_processed / target.filename / "{:03d}".format(channel) / "I_prime.npy")
+                        Q = np.load(datapaths.target_processed / target.filename / "{:03d}".format(channel) / "Q_prime.npy")
                     except:
-                        I = np.load(datapaths.target_S21 / target.filename / "{:03d}".format(channel) / "I.npy")
-                        Q = np.load(datapaths.target_S21 / target.filename / "{:03d}".format(channel) / "Q.npy")
+                        I = np.load(datapaths.target_processed / target.filename / "{:03d}".format(channel) / "I.npy")
+                        Q = np.load(datapaths.target_processed / target.filename / "{:03d}".format(channel) / "Q.npy")
                     
                     if markers:
                         ax0.plot(I, Q, color=color, linestyle='', marker='o', markersize=5)
@@ -293,9 +293,9 @@ def adaptive_iteratively_reweighted_penalized_least_squares_smoothing(data, lam,
         
         
 '''
-            buildS21Dataset function
+            buildDataset function
 '''      
-def buildS21Dataset(sweep, ROACH='MISTRAL'):
+def buildDataset(sweep, ROACH='MISTRAL'):
     '''
     This function converts the raw data sweep into different .npy files
     each for a single channel
@@ -320,10 +320,10 @@ def buildS21Dataset(sweep, ROACH='MISTRAL'):
     
     if  (datapaths.target / filename).exists():
         sweep_path = datapaths.target / filename
-        output_path = datapaths.target_S21 / filename
+        output_path = datapaths.target_processed / filename
     elif (datapaths.vna / filename).exists():
         sweep_path = datapaths.vna / filename
-        output_path = datapaths.vna_S21 / filename
+        output_path = datapaths.vna_processed / filename
     else:
         print("Sweep file not found.")
         sys.exit()
@@ -469,8 +469,8 @@ def jointTargetSweeps(targets, exclude_channels=[[]], flat_at_0db=False):
         
         for chan in n_chan:
             # read one sweep at a time
-            x_data_chan = np.load(datapaths.target_S21 / t.filename / "{:03d}".format(chan) / "freqs.npy")
-            y_data_chan = np.load(datapaths.target_S21 / t.filename / "{:03d}".format(chan) / "mag.npy")
+            x_data_chan = np.load(datapaths.target_processed / t.filename / "{:03d}".format(chan) / "freqs.npy")
+            y_data_chan = np.load(datapaths.target_processed / t.filename / "{:03d}".format(chan) / "mag.npy")
             
             if flat_at_0db == True:
                 y_data_chan -= max(y_data_chan)
@@ -489,7 +489,7 @@ def jointTargetSweeps(targets, exclude_channels=[[]], flat_at_0db=False):
 '''
                 complexS21Fit function
 '''
-def complexS21Fit(I, Q, freqs, output_path, RESFREQ=None, DATAPOINTS=None, verbose=True, fitting_method='leastsq'):
+def complexS21Fit(I, Q, freqs, output_path, RESFREQ=None, DATAPOINTS=None, verbose=True, fitting_method='leastsq', tau=0.05):
     '''
     Returns the complex fit of the S21 transfer function
 
@@ -630,7 +630,7 @@ def complexS21Fit(I, Q, freqs, output_path, RESFREQ=None, DATAPOINTS=None, verbo
         
     
     # removing the cable delay
-    tau = 0.05 # microsec --> in the dilution refrigerator!
+    #tau = 0.05 # microsec --> in the dilution refrigerator!
     #tau = 0.08 # microsec --> in the MISTRAL cryostat!
     phase += 2.0*np.pi*tau*freqs
     phase -= int(phase[0]/np.pi)*np.pi
@@ -1011,61 +1011,6 @@ def complexS21Plot(complex_fit_data_path):
     
     # print the figures
     plt.show()
-
-
-
-'''
-            Plot picolog data
-'''
-def plotPicolog(filename, OFFSET_TIME=False):
-    '''
-    This function returns a plot of a given picolog file with three channels
-
-    Parameters
-    ----------
-    filename : string
-        The picolog filename.
-    OFFSET_TIME : boolean, optional
-        If True, ch1 (usually time) will start with a zero. The default is 
-        False.
-
-    Returns
-    -------
-    None.
-
-    '''
-    import matplotlib.pyplot as plt
-    from G31_thermometry import Thermometer
-    thermometer = Thermometer(model='DT670', serial_no='D6068043')
-    
-    # read data
-    ch1,ch2,ch3 = np.loadtxt(datapaths.picolog/filename, dtype=float, skiprows=1, unpack=True, delimiter=',')
-    
-    if OFFSET_TIME:
-        ch1 -= ch1[0]
-    
-    # convert thermometer voltage to temperature
-    temperature = thermometer.temperature(ch2/1000.)
-    
-    fig = plt.figure(figsize=(9,9))
-    ax0 = fig.add_subplot(111)
-    ax0.plot(ch1, temperature, c='black')
-    ax0.set_ylabel('T$^{Cu}$ [K]', color='black')
-    ax0.tick_params(axis='y', colors='black')
-    ax0.set_xlim([ch1[0], ch1[-1]])
-    ax0.xaxis.grid()
-    
-    ax0_ = fig.add_subplot(111, sharex = ax0, frameon = False)
-    ax0_.fill_between(ch1, ch3, 0.0, alpha=0.20, color='red')
-    ax0_.yaxis.set_label_position("right")
-    ax0_.tick_params(axis='y', colors='red')
-    ax0_.yaxis.tick_right()
-    delta_ch3 = ch3.max() - ch3.min()
-    ax0_.set_ylim([ch3.min()-(delta_ch3*0.2), ch3.max()+(delta_ch3*0.2)])
-    ax0_.set_ylabel('Heater [V]', color='red')
-    
-    plt.show()
-    
     
 
 
@@ -1076,8 +1021,8 @@ def plot_target(target, axis, color=None, linestyle='solid', linewidth=1, flat_a
     for e in target.entry:
         # read one sweep at a time
         channel = e['channel']
-        x_data_chan = np.load(datapaths.target_S21 / target.filename / "{:03d}".format(channel) / "freqs.npy")
-        y_data_chan = np.load(datapaths.target_S21 / target.filename / "{:03d}".format(channel) / "mag.npy")
+        x_data_chan = np.load(datapaths.target_processed / target.filename / "{:03d}".format(channel) / "freqs.npy")
+        y_data_chan = np.load(datapaths.target_processed / target.filename / "{:03d}".format(channel) / "mag.npy")
         
         if flat_at_0db:
             y_data_chan -= max(y_data_chan)
@@ -1446,7 +1391,7 @@ def lsTarget():
     -------
     target_list : list of strings
         A list of strings with the name of target sweep directories.
-    target_S21_list : list of strings
+    target_processed_list : list of strings
         A list of strings with the name of converted target sweep directories.
 
     '''
@@ -1457,11 +1402,11 @@ def lsTarget():
         print(t)
     print('')
     print('List of target sweeps converted into different channels:')
-    target_S21_list = sorted([t for t in os.listdir(datapaths.target_S21) if t[0] != '.'])
-    for t in target_S21_list:
+    target_processed_list = sorted([t for t in os.listdir(datapaths.target_processed) if t[0] != '.'])
+    for t in target_processed_list:
         print(t)
     print('')
-    return target_list, target_S21_list
+    return target_list, target_processed_list
     
 
 '''
@@ -1475,7 +1420,7 @@ def lsVNA():
     -------
     vna_list : list of strings
         A list of strings with the name of VNA sweep directories.
-    vna_S21_list : list of strings
+    vna_processed_list : list of strings
         A list of strings with the name of converted VNA sweep directories.
 
     '''
@@ -1486,9 +1431,9 @@ def lsVNA():
         print(vna)
     print('')
     print('List of VNA sweeps converted into different channels:')
-    vna_S21_list = sorted([vna for vna in os.listdir(datapaths.vna_S21) if vna[0] != '.'])
-    for vna in vna_S21_list:
+    vna_processed_list = sorted([vna for vna in os.listdir(datapaths.vna_processed) if vna[0] != '.'])
+    for vna in vna_processed_list:
         print(vna)
     print('') 
-    return vna_list, vna_S21_list
+    return vna_list, vna_processed_list
     

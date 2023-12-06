@@ -1,21 +1,18 @@
 from pathlib import Path
 
-print('Looking for remote data folder...')
-working_directory = Path('/Volumes/homes')
+data_directory_name = Path('kids_acquisition_data')
+working_directory = Path('/media/federico/DATA/' / data_directory_name)
+print('Setting up the local data directory at "{:s}"...'.format(working_directory.as_posix()))
 if not working_directory.exists():
-    print('Remote data folder not found.')
-    print('Switching to /home/cacciotf/data directory')
-    working_directory = Path('/home/cacciotf/data')
+    working_directory.mkdir()
+    print('Local data directory not found. Created.')
+    
 
 target = working_directory / Path('target')
 vna = working_directory / Path('vna')
-target_S21 = working_directory / Path('target_S21')
-vna_S21 = working_directory / Path('vna_S21')
+target_processed = working_directory / Path('target_processed')
+vna_processed = working_directory / Path('vna_processed')
 dirfile = working_directory / Path('data_logger')
-output_noise = working_directory / Path('noise')
-cosmic_rays = working_directory / Path('cosmic_rays')
-picolog = working_directory / Path('picolog')
-anritsuMS2034B = working_directory / Path('anritsu_MS2034B')
 
 
 def check_if_dirs_exist(mkdir = False):
@@ -46,42 +43,21 @@ def check_if_dirs_exist(mkdir = False):
         if mkdir: 
             vna.mkdir()
             print(vna.as_posix() + add_dir_msg)
-    if not target_S21.exists():
-        print(target_S21.as_posix() + error_msg)
+    if not target_processed.exists():
+        print(target_processed.as_posix() + error_msg)
         if mkdir: 
-            target_S21.mkdir()
-            print(target_S21.as_posix() + add_dir_msg)
-    if not vna_S21.exists():
-        print(vna_S21.as_posix() + error_msg)
+            target_processed.mkdir()
+            print(target_processed.as_posix() + add_dir_msg)
+    if not vna_processed.exists():
+        print(vna_processed.as_posix() + error_msg)
         if mkdir: 
-            vna_S21.mkdir()
-            print(vna_S21.as_posix() + add_dir_msg)
+            vna_processed.mkdir()
+            print(vna_processed.as_posix() + add_dir_msg)
     if not dirfile.exists():
         print(dirfile.as_posix() + error_msg)
         if mkdir: 
             dirfile.mkdir()
             print(dirfile.as_posix() + add_dir_msg)
-    if not output_noise.exists():
-        print(output_noise.as_posix() + error_msg)
-        if mkdir: 
-            output_noise.mkdir()
-            print(output_noise.as_posix() + add_dir_msg)
-    if not cosmic_rays.exists():
-        print(cosmic_rays.as_posix() + error_msg)
-        if mkdir: 
-            cosmic_rays.mkdir()
-            print(cosmic_rays.as_posix() + add_dir_msg)
-    if not anritsuMS2034B.exists():
-        print(anritsuMS2034B.as_posix() + error_msg)
-        if mkdir: 
-            anritsuMS2034B.mkdir()
-            print(anritsuMS2034B.as_posix() + add_dir_msg)
-    if not picolog.exists():
-        print(picolog.as_posix() + error_msg)
-        if mkdir: 
-            picolog.mkdir()
-            print(picolog.as_posix() + add_dir_msg)
-            
             
             
 # check if data directories exist

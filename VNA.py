@@ -45,22 +45,22 @@ class VNA():
             print("Cannot find the target directory '{:s}'.".format(self.filename))
             sys.exit()
         
-        if not (datapaths.vna_S21 / self.filename).exists() or build_dataset:
+        if not (datapaths.vna_processed / self.filename).exists() or build_dataset:
             fc.buildS21Dataset(self, ROACH=ROACH)
             
         # load data to memory
         self.loadData()
         
         # here check if the baseline has been already calculated
-        if (datapaths.vna_S21 / self.filename / 'mag_baseline.npy').exists():
+        if (datapaths.vna_processed / self.filename / 'mag_baseline.npy').exists():
             print("Found an amplitude baseline file.")
-            self.mag_baseline = np.load(datapaths.vna_S21 / self.filename / 'mag_baseline.npy')
+            self.mag_baseline = np.load(datapaths.vna_processed / self.filename / 'mag_baseline.npy')
         else:
             print("Not found an amplitude baseline file.")
             remove_baseline = True
-        if (datapaths.vna_S21 / self.filename / 'phase_baseline.npy').exists():
+        if (datapaths.vna_processed / self.filename / 'phase_baseline.npy').exists():
             print("Found a phase baseline file.")
-            self.phase_baseline = np.load(datapaths.vna_S21 / self.filename / 'phase_baseline.npy')
+            self.phase_baseline = np.load(datapaths.vna_processed / self.filename / 'phase_baseline.npy')
         else:
             print("Not found a phase baseline file.")
             remove_baseline = True
@@ -70,9 +70,9 @@ class VNA():
             self.mag_baseline, self.phase_baseline = self.removeBaselines()
             
         # check for extracted target and load data
-        if (datapaths.vna_S21 / self.filename / 'extracted_target').exists():
+        if (datapaths.vna_processed / self.filename / 'extracted_target').exists():
             print("Extracted target found. Reading S21 data...")
-            entries = list((datapaths.vna_S21 / self.filename / 'extracted_target').glob('[0123456789]*'))
+            entries = list((datapaths.vna_processed / self.filename / 'extracted_target').glob('[0123456789]*'))
             print("Found", len(entries), "entries.")
             self.readS21Data(len(entries))
         
@@ -98,11 +98,11 @@ class VNA():
         for chan in range(n_chan):
             
             # read one sweep at a time
-            freqs_channel = np.load(datapaths.vna_S21 / self.filename / "{:03d}".format(chan) / "freqs.npy")
-            mag_channel = np.load(datapaths.vna_S21 / self.filename / "{:03d}".format(chan) / "mag.npy")
-            phase_channel = np.load(datapaths.vna_S21 / self.filename / "{:03d}".format(chan) / "phase.npy")
-            I_channel = np.load(datapaths.vna_S21 / self.filename / "{:03d}".format(chan) / "I.npy")
-            Q_channel = np.load(datapaths.vna_S21 / self.filename / "{:03d}".format(chan) / "Q.npy")
+            freqs_channel = np.load(datapaths.vna_processed / self.filename / "{:03d}".format(chan) / "freqs.npy")
+            mag_channel = np.load(datapaths.vna_processed / self.filename / "{:03d}".format(chan) / "mag.npy")
+            phase_channel = np.load(datapaths.vna_processed / self.filename / "{:03d}".format(chan) / "phase.npy")
+            I_channel = np.load(datapaths.vna_processed / self.filename / "{:03d}".format(chan) / "I.npy")
+            Q_channel = np.load(datapaths.vna_processed / self.filename / "{:03d}".format(chan) / "Q.npy")
             
             # remove offsets
             if chan != 0:
@@ -203,8 +203,8 @@ class VNA():
             self.phase -= self.phase_baseline
         
             # save baselines to file
-        np.save(datapaths.vna_S21 / self.filename / 'mag_baseline.npy', self.mag_baseline)
-        np.save(datapaths.vna_S21 / self.filename / 'phase_baseline.npy', self.phase_baseline)
+        np.save(datapaths.vna_processed / self.filename / 'mag_baseline.npy', self.mag_baseline)
+        np.save(datapaths.vna_processed / self.filename / 'phase_baseline.npy', self.phase_baseline)
     
         return self.mag, self.phase
     
@@ -253,7 +253,7 @@ class VNA():
         known_resonaces_not_fitted = 0
         for i in range(N_channels):
             try:
-                file_path = datapaths.vna_S21 / self.filename / 'extracted_target' / '{:03d}'.format(i)
+                file_path = datapaths.vna_processed / self.filename / 'extracted_target' / '{:03d}'.format(i)
                 [Rea_n, Rea_s, Ima_n, Ima_s, Q_tot_n, Q_tot_s, Q_c_n, Q_c_s, 
                  Q_i_n, Q_i_s, nu_r_n, nu_r_s, phi_0_n, phi_0_s, tau] = np.load(file_path / "complex_parameters.npy", allow_pickle=False)
                 
@@ -394,7 +394,7 @@ class VNA():
             keep = np.logical_and(self.freqs>=xmin-extr_width*width, self.freqs<=xmax+extr_width*width)
             
             # save I and Q data
-            output_path = datapaths.vna_S21 / self.filename / 'extracted_target' / '{:03d}'.format(i)
+            output_path = datapaths.vna_processed / self.filename / 'extracted_target' / '{:03d}'.format(i)
             if not output_path.exists():
                 output_path.mkdir(parents=True)
                 
@@ -450,7 +450,7 @@ class VNA():
             pbar = tqdm(self.entry, position=0, leave=True)
             for e in pbar:
                 pbar.set_description(self.filename+" complex fit... ")
-                out_path = datapaths.vna_S21 / self.filename / 'extracted_target' /  "{:03d}".format(e['channel'])
+                out_path = datapaths.vna_processed / self.filename / 'extracted_target' /  "{:03d}".format(e['channel'])
                 try:
                     I = np.load(out_path / 'I.npy')
                     Q = np.load(out_path / 'Q.npy')
@@ -469,7 +469,7 @@ class VNA():
                 except:
                     pass
         else:
-            out_path = datapaths.vna_S21 / self.filename / 'extracted_target' /  "{:03d}".format(channel)
+            out_path = datapaths.vna_processed / self.filename / 'extracted_target' /  "{:03d}".format(channel)
             I = np.load(out_path / 'I.npy')
             Q = np.load(out_path / 'Q.npy')
             freqs = np.load(out_path / 'freqs.npy')
@@ -493,7 +493,7 @@ class VNA():
 
 
     def plotS21(self, channel):
-        extracted_target_path = datapaths.vna_S21 / self.filename / 'extracted_target' / '{:03d}'.format(channel)
+        extracted_target_path = datapaths.vna_processed / self.filename / 'extracted_target' / '{:03d}'.format(channel)
         
         fc.complexS21Plot(extracted_target_path)
         
@@ -511,8 +511,8 @@ class VNA():
         for e in entries:
             # read one sweep at a time
             channel = e['channel']
-            x_data_chan = np.load(datapaths.vna_S21 / self.filename / 'extracted_target' /  "{:03d}".format(channel) / "freqs.npy")
-            y_data_chan = np.load(datapaths.vna_S21 / self.filename / 'extracted_target' /  "{:03d}".format(channel) / "mag.npy")
+            x_data_chan = np.load(datapaths.vna_processed / self.filename / 'extracted_target' /  "{:03d}".format(channel) / "freqs.npy")
+            y_data_chan = np.load(datapaths.vna_processed / self.filename / 'extracted_target' /  "{:03d}".format(channel) / "mag.npy")
             
             '''
             if flat_at_0db:

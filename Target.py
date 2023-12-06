@@ -2,6 +2,7 @@ import numpy as np
 from . import datapaths
 from . import functions as fc
 import sys
+import os
 
 '''
             Target class
@@ -19,7 +20,16 @@ class Target():
             self.label = filename
         
         self.in_res_target_idx_aligned = []
-        
+
+        if not (datapaths.target / self.filename).exists():
+            print("Cannot find the data '{:s}' in the local directory.".format(self.filename))
+            print("Downloading it from remote...")
+            username = "admin"
+            # Have you generated your SSH public key?
+            os.system('scp -r "{:s}"@nasg31.roma1.infn.it:/share/kids_acquisition_data/target/{:s} {:s}/{:s}'.format(username, self.filename, datapaths.target.as_posix(), self.filename))
+            os.system('scp -r "{:s}"@nasg31.roma1.infn.it:/share/kids_acquisition_data/target_processed/{:s} {:s}/{:s}'.format(username, self.filename, datapaths.target_processed.as_posix(), self.filename))
+            #sys.exit()
+
         try:
             path = datapaths.target / self.filename / 'target_freqs_new.npy'
             if path.exists():
@@ -28,20 +38,20 @@ class Target():
                 path = datapaths.target / self.filename / 'target_freqs_new.dat'
                 self.target_freqs_new = np.loadtxt(path)
         except:
-            print("Cannot find the target directory '{:s}'.".format(self.filename))
+            print("Not able to read the target_freqs file.")
             sys.exit()
             
         self.entries = self.target_freqs_new.size
         print('{:d} entries found.'.format(self.entries))
         
-        # building S21 dataset
-        if not (datapaths.target_S21 / self.filename).exists() or build_dataset:
-            fc.buildS21Dataset(self, ROACH=ROACH)
+        # building processed dataset
+        if not (datapaths.target_processed / self.filename).exists() or build_dataset:
+            fc.buildDataset(self, ROACH=ROACH)
         
         # building data dictonaries
         self.entry = []
         for channel,f in enumerate(self.target_freqs_new):
-            mag = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "mag.npy")
+            mag = np.load(datapaths.target_processed / self.filename / "{:03d}".format(channel) / "mag.npy")
             
             self.entry.append({'target_freq': f,
                                'channel': channel,
@@ -97,7 +107,7 @@ class Target():
     def fitS21(self, channel, RESFREQ=None, DATAPOINTS=None, plot=False, fitting_method='leastsq'):
         from tqdm import tqdm
         
-        path = datapaths.target_S21 / self.filename
+        path = datapaths.target_processed / self.filename
         
         if channel == 'all':
             pbar = tqdm(self.entry, position=0, leave=True)
@@ -108,7 +118,7 @@ class Target():
                     I = np.load(path / "{:03d}".format(c) / "I.npy", allow_pickle=True)
                     Q = np.load(path / "{:03d}".format(c) / "Q.npy", allow_pickle=True)
                     freqs = np.load(path / "{:03d}".format(c) / "freqs.npy", allow_pickle=True)
-                    out_path = datapaths.target_S21 / self.filename / "{:03d}".format(c)
+                    out_path = datapaths.target_processed / self.filename / "{:03d}".format(c)
                     
                     try:
                         params, chi2 = fc.complexS21Fit(I=I, Q=Q, freqs=freqs, output_path=out_path, DATAPOINTS=DATAPOINTS,
@@ -130,7 +140,7 @@ class Target():
             I = np.load(path / "{:03d}".format(channel) / "I.npy", allow_pickle=True)
             Q = np.load(path / "{:03d}".format(channel) / "Q.npy", allow_pickle=True)
             freqs = np.load(path / "{:03d}".format(channel) / "freqs.npy", allow_pickle=True)
-            out_path = datapaths.target_S21 / self.filename / "{:03d}".format(channel)
+            out_path = datapaths.target_processed / self.filename / "{:03d}".format(channel)
             
             params, chi2 = fc.complexS21Fit(I=I, Q=Q, freqs=freqs, RESFREQ=RESFREQ, output_path=out_path, DATAPOINTS=DATAPOINTS, 
                                             verbose=True, fitting_method=fitting_method)
@@ -154,7 +164,7 @@ class Target():
         known_resonaces_not_fitted = 0
         for i,e in enumerate(self.entry):
             try:
-                file_path = datapaths.target_S21 / self.filename / '{:03d}'.format(i)
+                file_path = datapaths.target_processed / self.filename / '{:03d}'.format(i)
                 [Rea_n, Rea_s, Ima_n, Ima_s, Q_tot_n, Q_tot_s, Q_c_n, Q_c_s, 
                  Q_i_n, Q_i_s, nu_r_n, nu_r_s, phi_0_n, phi_0_s, tau] = np.load(file_path / "complex_parameters.npy", allow_pickle=False)
                 
@@ -175,8 +185,8 @@ class Target():
     
     
     def get_mag(self, channel):
-        I = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "I.npy")
-        Q = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "Q.npy")
+        I = np.load(datapaths.target_processed / self.filename / "{:03d}".format(channel) / "I.npy")
+        Q = np.load(datapaths.target_processed / self.filename / "{:03d}".format(channel) / "Q.npy")
         
         accumulation_length = 2**21 #for fs=244.14Hz #2**21 for fs=122.07Hz
         fft_len = 1024
@@ -190,25 +200,25 @@ class Target():
     
     
     def get_Iraw(self, channel):
-        return np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "I.npy")
+        return np.load(datapaths.target_processed / self.filename / "{:03d}".format(channel) / "I.npy")
     
     def get_Qraw(self, channel):
-        return np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "Q.npy")
+        return np.load(datapaths.target_processed / self.filename / "{:03d}".format(channel) / "Q.npy")
     
     def get_magdB(self, channel):
-        return np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "mag.npy")
+        return np.load(datapaths.target_processed / self.filename / "{:03d}".format(channel) / "mag.npy")
  
     
     def get_phase(self, channel):
-        I = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "I.npy")
-        Q = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "Q.npy")
+        I = np.load(datapaths.target_processed / self.filename / "{:03d}".format(channel) / "I.npy")
+        Q = np.load(datapaths.target_processed / self.filename / "{:03d}".format(channel) / "Q.npy")
         
         ph = np.arctan2(Q, I)
         ph = np.unwrap(ph, period=np.pi)
         return ph
     
     def get_freqs(self, channel):
-        freqs = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "freqs.npy")
+        freqs = np.load(datapaths.target_processed / self.filename / "{:03d}".format(channel) / "freqs.npy")
         return freqs
     
     
@@ -222,8 +232,8 @@ class Target():
             if not e['is_out_of_res']:
                 # read one sweep at a time
                 channel = e['channel']
-                #x_data_chan = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "freqs.npy")
-                y_data_chan = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "mag.npy")
+                #x_data_chan = np.load(datapaths.target_processed / self.filename / "{:03d}".format(channel) / "freqs.npy")
+                y_data_chan = np.load(datapaths.target_processed / self.filename / "{:03d}".format(channel) / "mag.npy")
             
                 peaks, info = find_peaks(-y_data_chan, width=1, height=2.0, prominence=2.0)
                 n_peaks = len(peaks)
@@ -274,14 +284,14 @@ class Target():
             # read one sweep at a time
             channel = e['channel']
             if plot_type == 'amplitude':
-                x_data_chan = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "freqs.npy")
-                y_data_chan = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "mag.npy")
+                x_data_chan = np.load(datapaths.target_processed / self.filename / "{:03d}".format(channel) / "freqs.npy")
+                y_data_chan = np.load(datapaths.target_processed / self.filename / "{:03d}".format(channel) / "mag.npy")
             elif plot_type == 'phase':
-                x_data_chan = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "freqs.npy")
-                y_data_chan = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "phase.npy")
+                x_data_chan = np.load(datapaths.target_processed / self.filename / "{:03d}".format(channel) / "freqs.npy")
+                y_data_chan = np.load(datapaths.target_processed / self.filename / "{:03d}".format(channel) / "phase.npy")
             elif plot_type == 'circle':
-                x_data_chan = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "I.npy")
-                y_data_chan = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "Q.npy")
+                x_data_chan = np.load(datapaths.target_processed / self.filename / "{:03d}".format(channel) / "I.npy")
+                y_data_chan = np.load(datapaths.target_processed / self.filename / "{:03d}".format(channel) / "Q.npy")
             
             if flat_at_0db and plot_type=='amplitude':
                 y_data_chan -= max(y_data_chan)
@@ -355,10 +365,10 @@ class Target():
         plt.subplots_adjust(bottom=0.15, right=0.98, top=0.95, left=0.09, wspace=0.35)
         
         # read one sweep at a time
-        freqs = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "freqs.npy")
+        freqs = np.load(datapaths.target_processed / self.filename / "{:03d}".format(channel) / "freqs.npy")
         
-        I = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "I.npy")
-        Q = np.load(datapaths.target_S21 / self.filename / "{:03d}".format(channel) / "Q.npy")
+        I = np.load(datapaths.target_processed / self.filename / "{:03d}".format(channel) / "I.npy")
+        Q = np.load(datapaths.target_processed / self.filename / "{:03d}".format(channel) / "Q.npy")
         
         accumulation_length = 2**20 #for fs=244.14Hz #2**21 for fs=122.07Hz
         fft_len = 1024
@@ -395,7 +405,7 @@ class Target():
         
         
     def plotS21(self, channel):
-        target_path = datapaths.target_S21 / self.filename / '{:03d}'.format(channel)
+        target_path = datapaths.target_processed / self.filename / '{:03d}'.format(channel)
         
         fc.complexS21Plot(target_path)
         
