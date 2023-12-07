@@ -14,6 +14,10 @@ target_processed = working_directory / Path('target_processed')
 vna_processed = working_directory / Path('vna_processed')
 dirfile = working_directory / Path('data_logger')
 
+remote_username = 'admin'
+remote_hostname = 'nasg31.roma1.infn.it'
+remote_directory_path = Path('/share/kids_acquisition_data')
+
 
 def check_if_dirs_exist(mkdir = False):
     '''

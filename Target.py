@@ -24,10 +24,11 @@ class Target():
         if not (datapaths.target / self.filename).exists():
             print("Cannot find the data '{:s}' in the local directory.".format(self.filename))
             print("Downloading it from remote...")
-            username = "admin"
             # Have you generated your SSH public key?
-            os.system('scp -r "{:s}"@nasg31.roma1.infn.it:/share/kids_acquisition_data/target/{:s} {:s}/{:s}'.format(username, self.filename, datapaths.target.as_posix(), self.filename))
-            os.system('scp -r "{:s}"@nasg31.roma1.infn.it:/share/kids_acquisition_data/target_processed/{:s} {:s}/{:s}'.format(username, self.filename, datapaths.target_processed.as_posix(), self.filename))
+            os.system('scp -r "{:s}"@{:s}:{:s} {:s}'.format(datapaths.remote_username, datapaths.remote_hostname, 
+                                                                (datapaths.remote_directory_path/'target'/self.filename).as_posix(), (datapaths.target/self.filename).as_posix()))
+            os.system('scp -r "{:s}"@{:s}:{:s} {:s}'.format(datapaths.remote_username, datapaths.remote_hostname, 
+                                                                (datapaths.remote_directory_path/'target_processed'/self.filename).as_posix(), (datapaths.target_processed/self.filename).as_posix()))
             #sys.exit()
 
         try:

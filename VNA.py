@@ -3,6 +3,7 @@ from . import datapaths
 from . import functions as fc
 import sys
 from glob import glob
+import os
 
 '''
             VNA class
@@ -38,6 +39,16 @@ class VNA():
         self.filename = filename
         self.temperature = temperature
         self.entry = []
+
+        if not (datapaths.vna / self.filename).exists():
+            print("Cannot find the data '{:s}' in the local directory.".format(self.filename))
+            print("Downloading it from remote...")
+            # Have you generated your SSH public key?
+            os.system('scp -r "{:s}"@{:s}:{:s} {:s}'.format(datapaths.remote_username, datapaths.remote_hostname, 
+                                                                (datapaths.remote_directory_path/'vna'/self.filename).as_posix(), (datapaths.vna/self.filename).as_posix()))
+            os.system('scp -r "{:s}"@{:s}:{:s} {:s}'.format(datapaths.remote_username, datapaths.remote_hostname, 
+                                                                (datapaths.remote_directory_path/'vna_processed'/self.filename).as_posix(), (datapaths.vna_processed/self.filename).as_posix()))
+            #sys.exit()
         
         try:
             self.bb_freqs = np.load(datapaths.vna / self.filename / 'bb_freqs.npy')
