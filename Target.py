@@ -15,7 +15,7 @@ class Target():
         self.temperature = temperature
         
         if label != None:
-            self.label = label
+            self.label = "{:d}mK".format(self.temperature)
         else:
             self.label = filename
         

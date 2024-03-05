@@ -88,7 +88,7 @@ class VNA():
             self.readS21Data(len(entries))
         
         if label == None:
-            self.label = filename
+            self.label = "{:d}mK".format(self.temperature)
         else:
             self.label = label
     

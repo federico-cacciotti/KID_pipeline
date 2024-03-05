@@ -1044,7 +1044,7 @@ def n_qp(T, T_c, N_0):
     from uncertainties import unumpy as unp
     return 2.0*N_0*unp.sqrt(2.0*np.pi*kb*T*Delta_0(T_c)) * unp.exp(-Delta_0(T_c)/(kb*T))
 
-def electrical_phase_responsivity_linear_fit(nu_r, base_nu_r, T, T_c, N_0, V_abs):
+def electrical_phase_responsivity_linear_fit(nu_r, base_nu_r, T, T_c, N_0, V_abs, Nqp_err_std_mult=0.1):
     '''
     Returns the slopes of the dx vs dN_qp trend. This routine performs a linear fit on the dN_qp VS dx trend (with uncertainties on the temperatures) and then inverts the slope.
 
@@ -1054,7 +1054,7 @@ def electrical_phase_responsivity_linear_fit(nu_r, base_nu_r, T, T_c, N_0, V_abs
         resonant frequencies in MHz.
     base_nu_r : float
         base resonant frequency in MHz.
-    T : (u)numpy array
+    T : numpy array
         sweep temperatures in K.
     T_c : (u)float
         critical temperature in K.
@@ -1062,6 +1062,10 @@ def electrical_phase_responsivity_linear_fit(nu_r, base_nu_r, T, T_c, N_0, V_abs
         density of states at the Fermi surface in 1/um^3 1/J.
     V_abs : float
         absorber volume in um^3.
+    Nqp_err_std_mult : float
+        this number quantify the uncertainty on the Nqp values as
+        standard_deviation(N_qp) * Nqp_err_std_mult.
+        default is 0.1.
 
     Returns
     -------
@@ -1075,11 +1079,18 @@ def electrical_phase_responsivity_linear_fit(nu_r, base_nu_r, T, T_c, N_0, V_abs
     # convertion to numpy array
     nu_r = np.asarray(nu_r)
     delta_x = (nu_r-base_nu_r)/base_nu_r
+
+    # sometimes at low sweep temperatures the resonance doesn't move much and the estimation of the resonant frequency
+    # is affected by random scattering. This could cause a non-monotonic trend of dx vs dNqp and a failure in the fitting 
+    # routine. To avoid any issue of this kind it is better to sort the resonant frequency array and then the temperature
+    # array.
+    T = np.flip(np.asarray([Ti for _, Ti in sorted(zip(nu_r, T))]))
+    nu_r = np.flip(nu_r.sort())
     
     # check if all the temperatures are ufloat variables
     # if not, set the uncertainty to 1%
-    from uncertainties.core import Variable as uVar
-    T = np.asarray([ufloat(Ti, 0.01*Ti) if type(Ti)!=uVar else Ti for Ti in T])
+    #from uncertainties.core import Variable as uVar
+    #T = np.asarray([ufloat(Ti, 0.01*Ti) if type(Ti)!=uVar else Ti for Ti in T])
     
     
     # function used for the fit procedure
@@ -1099,6 +1110,10 @@ def electrical_phase_responsivity_linear_fit(nu_r, base_nu_r, T, T_c, N_0, V_abs
     
     # quasiparticle number density
     N_qp = V_abs * n_qp(T, T_c, N_0)
+
+    # assign an uncertainty to the Nqp values
+    N_qp_err = np.std([x for x in N_qp]) * Nqp_err_std_mult
+    N_qp = np.array([ufloat(x, N_qp_err) for x in N_qp])
     
     # linear fit
     params = Parameters()

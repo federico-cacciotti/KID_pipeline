@@ -4,21 +4,24 @@ from pathlib import Path
 import os
 
 class Dirfile():
-    def __init__(self, filename, fs, label=None):
+    def __init__(self, filename, fs, temperature, label=None):
         self.filename = Path(filename)
         self.fs = fs
+        self.temperature = temperature # mK
+        self.first_frame = 0
         
         if label == None:
-            self.label = filename
+            self.label = "{:d}mK".format(self.temperature)
         else:
             self.label = label
 
         if not (datapaths.dirfile / self.filename).exists():
             print("Cannot find the data '{:s}' in the local directory.".format(self.filename.as_posix()))
             print("Downloading it from remote...")
-            # Have you generated your SSH public key?
+            # Did you generated your SSH public key?
             os.system('scp -r "{:s}"@{:s}:{:s} {:s}'.format(datapaths.remote_username, datapaths.remote_hostname, 
-                                                                (datapaths.remote_directory_path/'log_kids'/self.filename).as_posix(), (datapaths.dirfile/self.filename).as_posix()))
+                                                            (datapaths.remote_directory_path/'log_kids'/self.filename).as_posix(), 
+                                                            (datapaths.dirfile/self.filename).as_posix()))
             
         self.dirfile = pygetdata.dirfile((datapaths.dirfile/self.filename).as_posix())
         self.nframes = self.dirfile.nframes
