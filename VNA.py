@@ -451,6 +451,17 @@ class VNA():
         ax1.set_xlabel('Frequency [MHz]')
         
         plt.show()
+        
+
+    def get_Iraw(self, channel):
+        return np.load(datapaths.vna_processed / self.filename / 'extracted_target' / "{:03d}".format(channel) / "I.npy")
+    
+    def get_Qraw(self, channel):
+        return np.load(datapaths.vna_processed / self.filename / 'extracted_target' / "{:03d}".format(channel) / "Q.npy")
+
+    def get_freqs(self, channel):
+        freqs = np.load(datapaths.vna_processed / self.filename / 'extracted_target' /  "{:03d}".format(channel) / "freqs.npy")
+        return freqs
     
     
     def fitS21(self, channel, RESFREQ=None, DATAPOINTS=None, plot=False, force_emcee=False, fitting_method='leastsq'):

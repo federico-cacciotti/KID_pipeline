@@ -11,19 +11,20 @@ from . import datapaths
 '''
         Function for overplotting targets and MS2034B data
 '''
-def overplotTargetSweeps(targets=None, ms2034b_data_list=None, channel_index=False, add_out_of_res_plot=False, complex_fit_above=False, flat_at_0db=True, colormap='coolwarm', markers=True, only_idxs=None, xlim=None):
+def overplotTargetSweeps(targets=None, ms2034b_data_list=None, channel_index=False, add_out_of_res_plot=False, complex_fit_above=False, flat_at_0db=True, colormap='coolwarm', markers=True, only_idxs=None, xlim=None, linestyle='solid', ax0=None):
     from matplotlib import pyplot as plt
     from matplotlib.lines import Line2D
     from matplotlib import colormaps as cm
     cmap = cm.get_cmap(colormap)
-    
-    fig = plt.figure()
-    fig.set_size_inches(7, 7)
-    ax0 = plt.subplot(111)
+
+    if ax0 == None:
+        fig = plt.figure()
+        fig.set_size_inches(16, 9)
+        ax0 = plt.subplot(111)
     
     ax0.yaxis.set_ticks_position('both')
     ax0.xaxis.set_ticks_position('both')
-    ax0.minorticks_on()
+    #ax0.minorticks_on()
     ax0.yaxis.set_tick_params(direction='in', which='both')
     ax0.xaxis.set_tick_params(direction='in', which='both')
     ax0.grid(linestyle='-', alpha=0.5)
@@ -40,7 +41,7 @@ def overplotTargetSweeps(targets=None, ms2034b_data_list=None, channel_index=Fal
                 color = cmap(i/(len(targets)-1))
             except ZeroDivisionError:
                 color = cmap(0)
-            if only_idxs != None:
+            if np.any(only_idxs) != None:
                 target_entries = [target.entry[idx] for idx in only_idxs]
             else:
                 target_entries = target.entry
@@ -58,13 +59,15 @@ def overplotTargetSweeps(targets=None, ms2034b_data_list=None, channel_index=Fal
                         y_data_chan -= y_offset
                 
                     if markers:
-                        ax0.plot(x_data_chan, y_data_chan, color=color, linestyle='-', linewidth=1, marker='o', markersize=3.5)
+                        ax0.plot(x_data_chan, y_data_chan, color=color, linestyle=linestyle, linewidth=1, marker='o', markersize=3.5)
                     else:
-                        ax0.plot(x_data_chan, y_data_chan, color=color, linestyle='solid')
+                        ax0.plot(x_data_chan, y_data_chan, color=color, linestyle=linestyle)
                     
                     # plot the channel index above the correspondend sweep
                     if channel_index:
-                        ax0.text(x_data_chan[0], y_data_chan[0], str(e['channel']), color=color)
+                        middle_index = int(len(x_data_chan)*0.5)
+                        y_text = np.min(y_data_chan[middle_index-20:middle_index+20])
+                        ax0.text(x_data_chan[middle_index], y_text, str(e['channel']), color=color)
                     
                     if complex_fit_above:
                         try:
@@ -76,7 +79,7 @@ def overplotTargetSweeps(targets=None, ms2034b_data_list=None, channel_index=Fal
                             mag = 20*np.log10(np.abs(Z))
                             if flat_at_0db:
                                 mag -= y_offset
-                            ax0.plot(nu, mag, linestyle='solid', color=color, alpha=0.6, linewidth=4)
+                            ax0.plot(nu, mag, linestyle=linestyle, color=color, alpha=0.6, linewidth=4)
                         except:
                             pass
                 
@@ -98,12 +101,14 @@ def overplotTargetSweeps(targets=None, ms2034b_data_list=None, channel_index=Fal
                 amp -= amp[0]
             
             color = cmap(i/(len(ms2034b_data_list)-1))
-            ax0.plot(sweep.freqs, amp, color=color, linestyle='dotted', linewidth=1)
+            ax0.plot(sweep.freqs, amp, color=color, linestyle=linestyle, linewidth=1)
             handles.append(Line2D([0], [0], linestyle='dotted', label=sweep.label, color=color))
     
-    ax0.legend(loc='best', handles=handles, fontsize=8)
-    
+    ax0.legend(loc='best', handles=handles)
+
     plt.show()
+    
+    return ax0
 
 
 

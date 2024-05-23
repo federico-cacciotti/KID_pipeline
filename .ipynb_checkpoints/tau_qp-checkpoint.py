@@ -21,6 +21,18 @@ def impulse_response(t, params):
     y = [v_offset if y_<=v_offset else y_ for y_ in y]
     return np.array(y)
 
+def impulse_response_two_constants(t, params):
+    tau_rise = params['tau_rise']
+    tau_fall = params['tau_fall']
+    A = params['A']
+    B = params['B']
+    t_offset = params['t_offset']
+    v_offset = params['v_offset']
+    
+    y = v_offset + A*np.exp(-(t-t_offset)/tau_fall) - B*np.exp(-(t-t_offset)/tau_rise)
+    y = [v_offset if y_<=v_offset else y_ for y_ in y]
+    return np.array(y)
+
 def double_exponential(t, tau_rise, tau_fall, tau_therm, A1, A2, t_offset):
     y = A1*(np.exp(-(t-t_offset)/tau_fall) - np.exp(-(t-t_offset)/tau_rise)) + A2*np.exp(-(t-t_offset)/tau_therm)
     y = [0.0 if y_<0 else y_ for y_ in y]
@@ -168,7 +180,7 @@ class Event():
         return bin_heights, bin_position, result
         
     
-    def fit(self, force_fit=False, method='least_squares', time_mask=None):
+    def fit(self, force_fit=False, method='least_squares', time_mask=None, fit_model='FIR'):
         # check if fit parameters already exist
         if not np.any(self.par == None) and force_fit == False:
             print("Fit parameters already exist. Try to force the fitting routine by passing 'force_fit=True' to the fit function.")
@@ -180,8 +192,10 @@ class Event():
         errors = np.ones(len(self.time['data']))*self.sigma_fit_results.params['sigma'].value
         
         def fcn2min(params, x, data, errs=None):
-            model = impulse_response(x, params)
-            
+            if fit_model == 'FIR':
+                model = impulse_response(x, params)
+            elif fit_model == 'mod FIR':
+                model = impulse_response_two_constants(x, params)
             if errs is None:
                 return model-data
             
@@ -199,6 +213,8 @@ class Event():
         params.add('tau_rise', value=time_at_max-t_offset, min=0.0, max=1.0e-2)
         params.add('tau_fall', value=t_fall_offset-time_at_max, min=0.0, max=1.0e-2)
         params.add('A', value=self.A.max(), min=0.0, max=np.inf)
+        if fit_model == 'mod FIR':
+            params.add('B', value=self.A.max(), min=0.0, max=np.inf)
         params.add('t_offset', value=t_offset, min=-1.0, max=1.0)
         params.add('v_offset', value=self.sigma_fit_results.params['mu'].value, min=-1.0, max=1.0)
         
@@ -268,8 +284,13 @@ class Event():
         ax_hist = fig.add_subplot(gs0[0:4, 4])
         ax_hist.tick_params(axis='both', which='both', direction='in', bottom=True, left=True, top=True, right=True)
         ax_hist.set_yticklabels([])
-        
-        FIR = impulse_response(self.time['data'], self.par)
+        # check fit if FIR or mod FIR
+        try:
+            check = self.par['B']
+            FIR = impulse_response_two_constants(self.time['data'], self.par)
+        except KeyError:
+            FIR = impulse_response(self.time['data'], self.par)
+            pass
         ax0.plot(self.time['data'], self.A, linestyle='solid', label='Data', color='gray', linewidth=1)
         ax0.plot(self.time['data'], FIR, linestyle='solid', linewidth=4, label='Fit', color='red', alpha=0.5)
         ax0.legend(loc='best')

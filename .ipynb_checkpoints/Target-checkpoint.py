@@ -14,10 +14,10 @@ class Target():
         self.filename = filename
         self.temperature = temperature
         
-        if label != None:
+        if label == None:
             self.label = "{:d}mK".format(self.temperature)
         else:
-            self.label = filename
+            self.label = label
         
         self.in_res_target_idx_aligned = []
 
