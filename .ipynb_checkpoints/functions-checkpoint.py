@@ -439,7 +439,6 @@ def S_21(nu, Rea, Ima, Q_tot, Q_c, nu_r, phi_0, tau=0.0):
     return np.exp(-1j*2.0*np.pi*tau*nu)*a*(1.0 - (Q_tot/Q_c)*np.exp(1j*phi_0) / (1+2*1j*Q_tot*(nu-nu_r)/nu_r) )
 
 
-
 '''
             jointTargetSweeps function
 '''
@@ -1048,6 +1047,10 @@ def n_qp(T, T_c, N_0):
     from scipy.constants import k as kb
     from uncertainties import unumpy as unp
     return 2.0*N_0*unp.sqrt(2.0*np.pi*kb*T*Delta_0(T_c)) * unp.exp(-Delta_0(T_c)/(kb*T))
+
+def tau_qp(T, tau_0, T_c):
+    from scipy.constants import k as kb
+    return tau_0/np.sqrt(np.pi) * ((kb*T_c/(2.0*Delta(T, T_c))))**(2.5) * np.sqrt(T_c/T) * np.exp(Delta(T, T_c) / (kb*T))
 
 def electrical_phase_responsivity_linear_fit(nu_r, base_nu_r, T, T_c, N_0, V_abs, Nqp_err_std_mult=0.1):
     '''

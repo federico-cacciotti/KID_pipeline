@@ -205,6 +205,18 @@ class Target():
     
     def get_Qraw(self, channel):
         return np.load(datapaths.target_processed / self.filename / "{:03d}".format(channel) / "Q.npy")
+
+    def get_Iprime(self, channel):
+        return np.load(datapaths.target_processed / self.filename / "{:03d}".format(channel) / "I_prime.npy")
+    
+    def get_Qprime(self, channel):
+        return np.load(datapaths.target_processed / self.filename / "{:03d}".format(channel) / "Q_prime.npy")
+
+    def get_Isecond(self, channel):
+        return np.load(datapaths.target_processed / self.filename / "{:03d}".format(channel) / "I_second.npy")
+    
+    def get_Qsecond(self, channel):
+        return np.load(datapaths.target_processed / self.filename / "{:03d}".format(channel) / "Q_second.npy")
     
     def get_magdB(self, channel):
         return np.load(datapaths.target_processed / self.filename / "{:03d}".format(channel) / "mag.npy")

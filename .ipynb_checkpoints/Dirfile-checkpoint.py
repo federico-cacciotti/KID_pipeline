@@ -23,18 +23,21 @@ class Dirfile():
                                                             (datapaths.remote_directory_path/'log_kids'/self.filename).as_posix(), 
                                                             (datapaths.dirfile/self.filename).as_posix()))
             
-        self.dirfile = pygetdata.dirfile((datapaths.dirfile/self.filename).as_posix())
-        self.nframes = self.dirfile.nframes
+        dirfile = pygetdata.dirfile((datapaths.dirfile/self.filename).as_posix())
+        self.nframes = dirfile.nframes
 
         print("Selected dirfile: {:s}".format(self.filename.as_posix()))
         print("Found {:d} frames".format(self.nframes))
 
+        dirfile.close()
 
     def get_time(self, first_frame=0, num_frames=None, remove_offset=False):
         if num_frames == None:
             num_frames = self.nframes
-
-        time = self.dirfile.getdata("time", first_frame=first_frame, num_frames=num_frames)
+            
+        dirfile = pygetdata.dirfile((datapaths.dirfile/self.filename).as_posix())
+        time = dirfile.getdata("time", first_frame=first_frame, num_frames=num_frames)
+        dirfile.close()
         
         if remove_offset:
             time -= time[0]
@@ -49,8 +52,11 @@ class Dirfile():
     def get_stream(self, channel, stream_type='p', first_frame=0, num_frames=None):
         if num_frames == None:
             num_frames = self.nframes
+
+        dirfile = pygetdata.dirfile((datapaths.dirfile/self.filename).as_posix())
+        stream = dirfile.getdata("ch{:s}_{:03d}".format(stream_type, channel), first_frame=first_frame, num_frames=num_frames)
+        dirfile.close()
         
-        stream = self.dirfile.getdata("ch{:s}_{:03d}".format(stream_type, channel), first_frame=first_frame, num_frames=num_frames)
         return stream
     
 
