@@ -19,7 +19,7 @@ def overplotTargetSweeps(targets=None, ms2034b_data_list=None, channel_index=Fal
 
     if ax0 == None:
         fig = plt.figure()
-        fig.set_size_inches(16, 9)
+        fig.set_size_inches(5, 5)
         ax0 = plt.subplot(111)
     
     ax0.yaxis.set_ticks_position('both')
@@ -27,7 +27,7 @@ def overplotTargetSweeps(targets=None, ms2034b_data_list=None, channel_index=Fal
     #ax0.minorticks_on()
     ax0.yaxis.set_tick_params(direction='in', which='both')
     ax0.xaxis.set_tick_params(direction='in', which='both')
-    ax0.grid(linestyle='-', alpha=0.5)
+    ax0.grid(linestyle='dashed', alpha=0.4, color='gray')
     ax0.set_ylabel('Mag [dB]')
     ax0.set_xlabel('Frequency [MHz]')
     if xlim != None:

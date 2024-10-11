@@ -351,7 +351,7 @@ class Target():
         
         plt.grid(linestyle='-', alpha=0.5)
         if plot_type == 'amplitude':
-            plt.ylabel('Mag [dB]')
+            plt.ylabel('Amplitude [dB]')
             plt.xlabel('Frequency [MHz]')
         elif plot_type == 'phase':
             plt.ylabel('Phase [rad]')
@@ -409,7 +409,7 @@ class Target():
         ax2.grid(linestyle='-', alpha=0.5)
         ax0.set_ylabel('Q [arbitrary units]')
         ax0.set_xlabel('I [arbitrary units]')
-        ax1.set_ylabel('Mag [dB]')
+        ax1.set_ylabel('Amplitude [dB]')
         ax1.set_xlabel('Frequency [MHz]')
         ax2.set_ylabel('Phase [rad]')
         ax2.set_xlabel('Frequency [MHz]')

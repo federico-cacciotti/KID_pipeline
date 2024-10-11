@@ -102,7 +102,11 @@ class Event():
         self.phase = np.arctan2(self.Q, self.I)
         self.phase = np.unwrap(self.phase)
 
-            
+        # remove infinites (don't know why it happens)
+        if np.any(np.isinf(self.A)):
+            print("There are infinites in the input data. Replacing with zeros.")
+            self.A[np.isinf(self.A)] = 0.0
+        
         # check if fit parameters already exists
         self.fit_result = None
         self.par = None
