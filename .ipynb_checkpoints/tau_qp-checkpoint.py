@@ -340,10 +340,10 @@ class Event():
         
         
         
-def add_batch(tek_numbers, path_to_tek_files, CH1=None, CH2=None, CH3=None, CH4=None, label_prefix='Event_', tek_prefix='tek', tek_extension='.csv', digits=4):
+def add_batch(tek_numbers, path_to_tek_files, CH1=None, CH2=None, CH3=None, CH4=None, label_prefix='Event_', tek_prefix='tek', tek_extension='.csv', digits=4, force_sigma_estimation=False):
     batch = []
     for i,tek_number in enumerate(tek_numbers):
-        batch.append(Event(path_to_tek_files+'/'+tek_prefix+'{:04d}'.format(tek_number)+tek_extension, CH1=CH1, CH2=CH2, CH3=CH3, CH4=CH4, label=label_prefix+'{:d}'.format(i)))
+        batch.append(Event(path_to_tek_files+'/'+tek_prefix+'{:04d}'.format(tek_number)+tek_extension, CH1=CH1, CH2=CH2, CH3=CH3, CH4=CH4, label=label_prefix+'{:d}'.format(i), force_sigma_estimation=force_sigma_estimation))
     return batch
         
 

@@ -61,10 +61,6 @@ class VNA():
             
         # load data to memory
         self.loadData()
-
-        # remove baseline
-        if remove_baseline:
-            self.mag_baseline, self.phase_baseline = self.computeBaselines()
         
         # here check if the baseline has been already calculated
         if (datapaths.vna_processed / self.filename / 'mag_baseline.npy').exists():
@@ -79,6 +75,10 @@ class VNA():
         else:
             print("Not found a phase baseline file.")
             remove_baseline = True
+
+        # remove baseline
+        if remove_baseline:
+            self.mag_baseline, self.phase_baseline = self.computeBaselines()
             
         # check for extracted target and load data
         if (datapaths.vna_processed / self.filename / 'extracted_target').exists():

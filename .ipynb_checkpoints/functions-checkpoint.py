@@ -1,7 +1,20 @@
 import numpy as np
 from matplotlib.lines import Line2D
 import sys
+import os
 from . import datapaths
+from uncertainties import ufloat, unumpy as unp
+from matplotlib import pyplot as plt
+from matplotlib.lines import Line2D
+from matplotlib import colormaps as cm
+from scipy.sparse import spdiags, linalg, diags
+from scipy.linalg import norm
+from scipy.signal import butter, sosfilt, periodogram, welch
+from tqdm import tqdm
+from lmfit import Parameters, minimize, fit_report, Minimizer
+from pathlib import Path
+from scipy.constants import h, c, k as kb, sigma
+from scipy.integrate import quad
 
 
 #NEP_photon = 5.e-15 #W/Hz^1/2
@@ -12,9 +25,6 @@ from . import datapaths
         Function for overplotting targets and MS2034B data
 '''
 def overplotTargetSweeps(targets=None, ms2034b_data_list=None, channel_index=False, add_out_of_res_plot=False, complex_fit_above=False, flat_at_0db=True, colormap='coolwarm', markers=True, only_idxs=None, xlim=None, linestyle='solid', ax0=None):
-    from matplotlib import pyplot as plt
-    from matplotlib.lines import Line2D
-    from matplotlib import colormaps as cm
     cmap = cm.get_cmap(colormap)
 
     if ax0 == None:
@@ -113,9 +123,6 @@ def overplotTargetSweeps(targets=None, ms2034b_data_list=None, channel_index=Fal
 
 
 def overplotTargetCircles(targets=None, ms2034b_data_list=None, complex_fit_above=False, colormap='coolwarm', markers=True, only_idxs=None, force_raw_data=False):
-    from matplotlib import pyplot as plt
-    from matplotlib.lines import Line2D
-    from matplotlib import colormaps as cm
     cmap = cm.get_cmap(colormap)
     
     fig = plt.figure(figsize=(7,7))
@@ -280,8 +287,6 @@ def adaptive_iteratively_reweighted_penalized_least_squares_smoothing(data, lam,
     lam: adjusting parameter
     N_iter: number of iteration
     '''
-    from scipy.sparse import spdiags, linalg, diags
-    from scipy.linalg import norm
     L = len(data)
     D = diags([1,-2,1],[0,-1,-2], shape=(L,L-2))
     w = np.ones(L)
@@ -319,7 +324,6 @@ def buildDataset(sweep, ROACH='MISTRAL'):
     None.
 
     '''
-    from  tqdm import tqdm
     
     filename = sweep.filename
     
@@ -373,12 +377,13 @@ def buildDataset(sweep, ROACH='MISTRAL'):
     # data from mistral client to compute amplitude in dBm
     accumulation_length = 2**20
     fft_length = 1024
+    adc_max_amplitude = 2**31-1
     pbar = tqdm(range(n_res), position=0, leave=True)
     for i in pbar:
         pbar.set_description("\tComputing frequencies... ")
         
-        Q[i] *= (0.5*fft_length) / ((2**31-1)*(accumulation_length-1))
-        I[i] *= (0.5*fft_length) / ((2**31-1)*(accumulation_length-1))
+        Q[i] *= (0.5*fft_length) / ((adc_max_amplitude)*(accumulation_length-1))
+        I[i] *= (0.5*fft_length) / ((adc_max_amplitude)*(accumulation_length-1))
         
         mag = np.sqrt(Q[i]*Q[i] + I[i]*I[i])
         #mag /= (2**31-1)    # mistral client
@@ -461,7 +466,6 @@ def jointTargetSweeps(targets, exclude_channels=[[]], flat_at_0db=False):
     None.
 
     '''
-    from matplotlib import pyplot as plt
     fig = plt.figure()
     fig.set_size_inches(6, 4)
     
@@ -522,8 +526,6 @@ def complexS21Fit(I, Q, freqs, output_path, RESFREQ=None, DATAPOINTS=None, verbo
         DESCRIPTION.
 
     '''
-    from lmfit import Parameters, minimize, fit_report
-    from uncertainties import ufloat
     
     # number of resonance FWHM datapoints around the resonant frequency to be considered for the fit 
     N_FWHM = 16.0
@@ -843,8 +845,6 @@ def complexS21Fit(I, Q, freqs, output_path, RESFREQ=None, DATAPOINTS=None, verbo
             complexS21Plot function
 '''
 def complexS21Plot(complex_fit_data_path):
-    from matplotlib.lines import Line2D
-    from pathlib import Path
     complex_fit_data_path = Path(complex_fit_data_path)
     
     I = np.load(complex_fit_data_path / "I.npy")
@@ -1054,7 +1054,7 @@ def tau_qp(T, tau_0, T_c):
 
 def electrical_phase_responsivity_linear_fit(nu_r, base_nu_r, T, T_c, N_0, V_abs, Nqp_err_std_mult=0.1):
     '''
-    Returns the slopes of the dx vs dN_qp trend. This routine performs a linear fit on the dN_qp VS dx trend (with uncertainties on the temperatures) and then inverts the slope.
+    Returns the slopes of the dx vs dN_qp trend. This routine performs a linear fit on the dN_qp VS dx trend (with uncertainties on the temperatures). it should be inverted with electrical_amplitude_responsivity_linear_fit_invert()
 
     Parameters
     ----------
@@ -1081,8 +1081,6 @@ def electrical_phase_responsivity_linear_fit(nu_r, base_nu_r, T, T_c, N_0, V_abs
         dictionary with 'fit_results' (lmfit.minimize.results or None), 'xdata' (ufloat) and 'ydata' (np.array).
 
     '''
-    from lmfit import Minimizer, Parameters
-    from uncertainties import ufloat, unumpy as unp
     
     # convertion to numpy array
     nu_r = np.asarray(nu_r)
@@ -1136,7 +1134,33 @@ def electrical_phase_responsivity_linear_fit(nu_r, base_nu_r, T, T_c, N_0, V_abs
         return {'fit_results': None, 'xdata': N_qp, 'ydata': delta_x}
     
     return {'fit_results': results, 'xdata': N_qp, 'ydata': delta_x}
-    
+
+
+def electrical_amplitude_responsivity_linear_fit_invert(fit_results_dict):
+    '''
+    Returns the slopes of the dx vs dN_qp trend
+
+    Parameters
+    ----------
+    fit_results_dict : dictionary
+        dictionary returned by electrical_phase_responsivity_linear_fit().
+
+    Returns
+    -------
+    dictionary
+        dictionary of fit paramters and inverted linear fit.
+
+    '''
+    results = fit_results_dict['fit_results']
+    xdata = unp.nominal_values(fit_results_dict['xdata'])
+    xerr = unp.std_devs(fit_results_dict['xdata'])
+    ydata = fit_results_dict['ydata']
+    slope = 1.0/ufloat(results.params['slope'].value, results.params['slope'].stderr)
+    intercept = -ufloat(results.params['intercept'].value, results.params['intercept'].stderr)*slope
+    fit_results_dict['slope'] = slope
+    fit_results_dict['intercept'] = intercept
+    return fit_results_dict
+
 
 def electrical_amplitude_responsivity_linear_fit(Q_i, T, T_c, N_0, V_abs, label=None, color='black', axis=None):
     '''
@@ -1297,8 +1321,6 @@ def plot_extracted_stream(filename, channel, axis, noise_type='chp', label=None,
 noise_type = 'chp' or 'cha'
 '''
 def plot_extracted_noise_spectral_density(filename, channel, sampling_frequency, axis=None, noise_type='chp', label=None, color=None, linestyle='solid', linewidth=1, ylim=None):
-    from scipy.signal import periodogram
-    
     path = datapaths.output_noise / filename
     
     if label is None:
@@ -1348,7 +1370,6 @@ def plot_S21_MS2034B(ms2034b_object, axis, label=None, linestyle='solid', linewi
 
 
 def electrical_phase_noise_equivalent_power(responsivity, noise_spectral_density, freqs, axis=None, label='ch', color='black', linestyle='solid', linewidth=1):
-
     NEP = np.sqrt(noise_spectral_density)/responsivity  
 
     axis.plot(freqs, NEP, color=color, label=label, linestyle=linestyle, linewidth=linewidth)
@@ -1362,23 +1383,80 @@ def electrical_phase_noise_equivalent_power(responsivity, noise_spectral_density
     return freqs, NEP
 
 
-
+'''
 def psd(ydata, fs, window='hann', nfft=None):
-    from scipy.signal import periodogram, welch
-    import numpy as np
-    freqs, spectrum = periodogram(ydata, fs=fs, scaling="density", window=window, nfft=nfft)
+    fft = np.fft.fft(ydata)
+    fft_angle = np.angle(fft)
+    freqs = np.fft.fftfreq(ydata.size, d=1/fs)
+    mask = freqs > 0.0
+    psd = fft[mask]
+    freqs = freqs[mask]
+    
+    #freqs, spectrum = periodogram(ydata, fs=fs, scaling="density", window=window, nfft=nfft)
     #freqs, spectrum = welch(ch, fs=fs, window='hann', scaling='density')
     psd = np.sqrt(spectrum)
+    return freqs, psd
+'''
+
+def psd(ydata, fs, subsamples=1, fft_method='periodogram', window='hann', nfft=None):
+    if ydata.size % subsamples != 0:
+        print("Data size {:d} is not divisible by {:d} samples".format(ydata.size, samples))
+        return None, None
+
+    mean_spectrum = []
+    size = int(ydata.size/subsamples)
+    for i in range(subsamples):
+        if fft_method == 'periodogram':
+            freqs, spectrum = periodogram(ydata[int(i)*size:int(i+1)*size], fs=fs, window=window, scaling="density", nfft=nfft)
+        if fft_method == 'welch':
+            freqs, spectrum = welch(ydata[int(i)*size:int(i+1)*size], fs=fs, window=window, scaling="density", nfft=nfft)
+        elif fft_method == 'numpy':
+            fft = np.fft.fft(ydata[int(i)*size:int(i+1)*size]) / ydata[int(i)*size:int(i+1)*size].size
+            #fft_angle = np.angle(fft)
+            freqs = np.fft.fftfreq(ydata[int(i)*size:int(i+1)*size].size, d=1/fs)
+            mask = freqs > 0.0
+            spectrum = np.abs(fft[mask])
+            freqs = freqs[mask]
+        
+        mean_spectrum.append(np.sqrt(spectrum))
+
+    psd = np.mean(mean_spectrum, axis=0)
     return freqs, psd
 
 
 
 def filt(ydata, Wn, fs, order=2, filter_type='highpass'):
-    from scipy.signal import butter, sosfilt
     sos = butter(N=order, Wn=Wn, btype=filter_type, fs=fs, output='sos')
     filtered = sosfilt(sos, ydata)
     return filtered
 
+
+
+def blackbody(nu, T):
+	return (2.0*h*nu**3.0)/c**2.0 * 1.0/(np.exp((h*nu)/(kb*T)) - 1.0)
+
+def throughput_l2(nu):
+    return (c / nu)**2.0
+
+def blackbody_photon_noise(T, nu_min, nu_max, frequency_window=None, emittance=1.0):
+    from .functions import throughput_l2, blackbody
+    def int_1(nu, T=T):
+        if frequency_window == None:
+            return (2.0*emittance*h) * (throughput_l2(nu)*blackbody(nu, T)*nu)
+        else:
+            return (2.0*frequency_window(nu)*emittance*h) * (throughput_l2(nu)*blackbody(nu, T)*nu)
+            
+    def int_2(nu, T=T):
+        if frequency_window == None:
+            return (emittance*c)**2.0 * throughput_l2(nu)*(blackbody(nu, T)/nu)**2.0
+        else:
+            return (frequency_window(nu)*emittance*c)**2.0 * throughput_l2(nu)*(blackbody(nu, T)/nu)**2.0
+
+    int_1_value = quad(int_1, args=(T), a=nu_min, b=nu_max)[0]
+    int_2_value = quad(int_2, args=(T), a=nu_min, b=nu_max)[0]
+    
+    return np.sqrt(int_1_value + int_2_value)
+    
 
 def map_values(values, map_bounds=(0.0, 1.0)):
     '''
@@ -1418,7 +1496,6 @@ def lsTarget():
         A list of strings with the name of converted target sweep directories.
 
     '''
-    import os
     print('List of target sweeps:')
     target_list = sorted([t for t in os.listdir(datapaths.target) if t[0] != '.'])
     for t in target_list:
@@ -1447,7 +1524,6 @@ def lsVNA():
         A list of strings with the name of converted VNA sweep directories.
 
     '''
-    import os
     print('List of VNA sweeps:')
     vna_list = sorted([vna for vna in os.listdir(datapaths.vna) if vna[0] != '.'])
     for vna in vna_list:
