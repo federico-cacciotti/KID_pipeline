@@ -248,7 +248,7 @@ class Target():
                 #x_data_chan = np.load(datapaths.target_processed / self.filename / "{:03d}".format(channel) / "freqs.npy")
                 y_data_chan = np.load(datapaths.target_processed / self.filename / "{:03d}".format(channel) / "mag.npy")
             
-                peaks, info = find_peaks(-y_data_chan, width=1, height=2.0, prominence=2.0)
+                peaks, info = find_peaks(-y_data_chan, width=1, height=2.5, prominence=2.5)
                 n_peaks = len(peaks)
                 
                 if n_peaks>1:

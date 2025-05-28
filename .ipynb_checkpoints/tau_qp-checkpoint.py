@@ -247,7 +247,7 @@ class Event():
         ax0.plot(self.time['data'], self.A, linestyle='solid', label='Data', color='gray')
         
         FIR = impulse_response(self.time['data'], self.par)
-        ax0.plot(self.time['data']*1e6, FIR, linestyle='solid', linewidth=4, label='Fit', color='red', alpha=0.5)
+        ax0.plot(self.time['data'], FIR, linestyle='solid', linewidth=4, label='Fit', color='red', alpha=0.5)
         
         ax0.legend(loc='best')
         ax0.grid(color='gray', alpha=0.4)

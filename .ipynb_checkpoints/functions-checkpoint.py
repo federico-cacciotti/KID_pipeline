@@ -950,7 +950,7 @@ def complexS21Plot(complex_fit_data_path):
         pass
     # Complex fit
     try:
-        Z_freqs = np.linspace(freqs[0], freqs[-1], num=2000)
+        Z_freqs = np.linspace(freqs[0], freqs[-1], num=20000)
         Z = S_21(Z_freqs, Rea, Ima, Qt, Qc, nu_r, phi0)
         circlePlot.plot(np.real(Z), np.imag(Z), linestyle='-', color='red', alpha=0.5, linewidth=3.0)
         phasePlot2.plot(Z_freqs, np.unwrap(np.angle(Z)), linestyle='-', color='red', alpha=0.5, linewidth=3.0)
